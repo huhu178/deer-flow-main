@@ -102,14 +102,12 @@ export function MedicalMessageList({
               {msg.role !== "user" && (
                 <div className="flex items-center mb-1">
                   <span className="text-sm font-medium text-blue-700">
-                    {
-                      {
-                        researcher: "研究员",
-                        coder: "代码分析师",
-                        reporter: "报告生成器",
-                        planner: "医学研究规划师",
-                      }[msg.agent ?? ""] ?? "智能助手"
-                    }
+                    {{
+                      researcher: "研究员",
+                      coder: "代码分析师",
+                      reporter: "报告生成器",
+                      planner: "医学研究规划师",
+                    }[msg.agent as string] ?? "智能助手"}
                   </span>
                 </div>
               )}
