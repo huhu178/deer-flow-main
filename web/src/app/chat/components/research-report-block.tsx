@@ -5,7 +5,7 @@ import { useCallback, useRef } from "react";
 
 import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
 import { Markdown } from "~/components/deer-flow/markdown";
-import { SimpleEnhancedRenderer } from "~/components/deer-flow/simple-enhanced-renderer";
+// import { SimpleEnhancedRenderer } from "~/components/deer-flow/simple-enhanced-renderer"; // Temporarily disabled - component is empty
 import ReportEditor from "~/components/editor";
 import { useReplay } from "~/core/replay";
 import { useMessage, useStore } from "~/core/store";
@@ -75,19 +75,9 @@ export function ResearchReportBlock({
       ref={contentRef}
       className={cn("relative flex flex-col pt-4 pb-8", className)}
     >
-      {isCompleted && message?.content ? (
-        // 报告完成后使用增强渲染器
-        <SimpleEnhancedRenderer
-          content={message.content}
-          className="min-h-screen"
-        />
-      ) : (
-        // 报告生成中使用普通Markdown渲染
-        <>
-          <Markdown animate>{message?.content}</Markdown>
-          {message?.isStreaming && <LoadingAnimation className="my-12" />}
-        </>
-      )}
+      {/* Temporarily using Markdown component for both cases until SimpleEnhancedRenderer is implemented */}
+      <Markdown animate>{message?.content}</Markdown>
+      {message?.isStreaming && <LoadingAnimation className="my-12" />}
     </div>
   );
 }
