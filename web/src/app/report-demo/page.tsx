@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { EnhancedReportRenderer } from "~/components/deer-flow/enhanced-report-renderer";
+// import { EnhancedReportRenderer } from "~/components/deer-flow/enhanced-report-renderer";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+
+const REPORT_CONTENT_PLACEHOLDER = `# 报告标题
+
+这是一些报告内容。由于渲染组件暂时不可用，这里只显示纯文本。`;
 
 const sampleReport = `# 基于人工智能和影像组学的桡骨DXA影像预测全身健康状态研究报告
 
@@ -136,146 +140,18 @@ const sampleMetadata = {
   tags: ['人工智能', 'DXA影像', '影像组学', '健康预测', '深度学习', '医学AI']
 };
 
-export default function ReportDemoPage() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'academic' | 'modern'>('modern');
-  const [showMetadata, setShowMetadata] = useState(true);
-  const [showTOC, setShowTOC] = useState(true);
+const ReportDemoPage = () => {
+  const [reportContent] = useState(REPORT_CONTENT_PLACEHOLDER);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 页面头部 */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                🎨 增强报告渲染器演示
-              </h1>
-              <p className="text-gray-600 mt-2">
-                体验全新的医学研究报告展示效果，支持多主题、目录导航、全屏阅读等功能
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="text-sm">
-                演示版本 v2.0
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 控制面板 */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">🎛️ 渲染选项</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">主题：</span>
-                <div className="flex gap-2">
-                  {(['light', 'dark', 'academic', 'modern'] as const).map((t) => (
-                    <Button
-                      key={t}
-                      variant={theme === t ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme(t)}
-                    >
-                      {t === 'light' && '☀️ 明亮'}
-                      {t === 'dark' && '🌙 深色'}
-                      {t === 'academic' && '📚 学术'}
-                      {t === 'modern' && '✨ 现代'}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={showMetadata ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowMetadata(!showMetadata)}
-                >
-                  📊 元数据
-                </Button>
-                <Button
-                  variant={showTOC ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowTOC(!showTOC)}
-                >
-                  📑 目录
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 功能特性展示 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  🎨
-                </div>
-                <h3 className="font-semibold">多主题支持</h3>
-              </div>
-              <p className="text-sm text-gray-600">
-                支持明亮、深色、学术、现代四种主题，适应不同阅读场景和用户偏好
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  📑
-                </div>
-                <h3 className="font-semibold">智能目录</h3>
-              </div>
-              <p className="text-sm text-gray-600">
-                自动提取标题生成目录，支持快速跳转和阅读进度跟踪
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  🔧
-                </div>
-                <h3 className="font-semibold">丰富功能</h3>
-              </div>
-              <p className="text-sm text-gray-600">
-                全屏阅读、打印导出、分享链接、进度跟踪等实用功能
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* 报告渲染区域 */}
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        <Card className="overflow-hidden">
-          <div className="h-[800px]">
-            <EnhancedReportRenderer
-              content={sampleReport}
-              metadata={sampleMetadata}
-              theme={theme}
-              showMetadata={showMetadata}
-              showTOC={showTOC}
-              enableFullscreen={true}
-              enablePrint={true}
-              enableShare={true}
-              className="h-full"
-            />
-          </div>
-        </Card>
+    <div className="bg-gray-50 min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-gray-800 mb-8">报告预览</h1>
+        {/* <EnhancedReportRenderer content={reportContent} /> */}
+        <div>报告渲染功能已暂时禁用以修复部署问题。</div>
       </div>
     </div>
   );
-} 
+};
+
+export default ReportDemoPage; 
