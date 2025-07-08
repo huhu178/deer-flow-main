@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "instanceId": "12345"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-research",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "AI Research Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ai-research-webhook"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/reports/webhook/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ \n  \"action\": \"create\",\n  \"data\": {\n    \"report_id\": \"n8n_\" + $now.format('yyyyMMdd_HHmmss'),\n    \"content\": \"# \" + $json.topic + \"\\n\\n研究请求通过n8n接收:\\n- 主题: \" + $json.topic + \"\\n- 语言: \" + $json.language + \"\\n- 深度: \" + $json.depth + \"\\n\\n生成时间: \" + $now.format('yyyy-MM-dd HH:mm:ss') + \"\\n\\n状态: 已接收，正在处理...\",\n    \"metadata\": {\n      \"source\": \"n8n\",\n      \"topic\": $json.topic,\n      \"language\": $json.language,\n      \"depth\": $json.depth,\n      \"timestamp\": $now.format('yyyy-MM-ddTHH:mm:ss')\n    }\n  }\n}}",
+        "options": {
+          "timeout": 300
+        }
+      },
+      "id": "http-request",
+      "name": "Call AI System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-webhook",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "AI Research Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call AI System",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call AI System": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-06-30T09:15:00.000Z",
+      "updatedAt": "2025-06-30T09:15:00.000Z",
+      "id": "ai-research",
+      "name": "AI Research"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-06-30T09:15:00.000Z",
+  "versionId": "1"
+} 

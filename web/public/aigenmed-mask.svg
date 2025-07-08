@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- AI医疗图标 - 结合医疗十字和AI元素 -->
+  <defs>
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 医疗十字背景 -->
+  <rect x="9" y="4" width="6" height="16" rx="1" fill="url(#aiGradient)" opacity="0.8"/>
+  <rect x="4" y="9" width="16" height="6" rx="1" fill="url(#aiGradient)" opacity="0.8"/>
+  
+  <!-- AI神经网络节点 -->
+  <circle cx="6" cy="6" r="1.5" fill="#3B82F6"/>
+  <circle cx="18" cy="6" r="1.5" fill="#3B82F6"/>
+  <circle cx="6" cy="18" r="1.5" fill="#3B82F6"/>
+  <circle cx="18" cy="18" r="1.5" fill="#3B82F6"/>
+  
+  <!-- 连接线 -->
+  <line x1="6" y1="6" x2="12" y2="12" stroke="#8B5CF6" stroke-width="1" opacity="0.6"/>
+  <line x1="18" y1="6" x2="12" y2="12" stroke="#8B5CF6" stroke-width="1" opacity="0.6"/>
+  <line x1="6" y1="18" x2="12" y2="12" stroke="#8B5CF6" stroke-width="1" opacity="0.6"/>
+  <line x1="18" y1="18" x2="12" y2="12" stroke="#8B5CF6" stroke-width="1" opacity="0.6"/>
+  
+  <!-- 中心AI核心 -->
+  <circle cx="12" cy="12" r="2" fill="#FFFFFF" stroke="url(#aiGradient)" stroke-width="2"/>
+  <text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="8" fill="url(#aiGradient)" font-weight="bold">AI</text>
+</svg> 

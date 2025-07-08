@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI研究系统 - n8n测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI研究系统测试</h1>
+        <p>通过n8n工作流调用你的AI研究系统</p>
+        
+        <form id="aiForm">
+            <div class="form-group">
+                <label for="webhookUrl">Webhook URL:</label>
+                <input type="url" id="webhookUrl" 
+                       value="http://localhost:5678/webhook/DzWmypQ6JeunPvWx" 
+                       placeholder="请输入n8n生成的Webhook URL">
+            </div>
+            
+            <div class="form-group">
+                <label for="topic">研究主题:</label>
+                <input type="text" id="topic" 
+                       value="人工智能在医疗诊断中的应用" 
+                       placeholder="输入你想研究的主题">
+            </div>
+            
+            <div class="form-group">
+                <label for="language">语言:</label>
+                <select id="language">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="depth">研究深度:</label>
+                <select id="depth">
+                    <option value="comprehensive">全面研究</option>
+                    <option value="summary">简要概述</option>
+                    <option value="detailed">详细分析</option>
+                </select>
+            </div>
+            
+            <button type="submit">🚀 开始AI研究</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('aiForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const topic = document.getElementById('topic').value;
+            const language = document.getElementById('language').value;
+            const depth = document.getElementById('depth').value;
+            
+            // 显示加载状态
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = '正在调用AI系统，请稍候...';
+            
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        topic: topic,
+                        language: language,
+                        depth: depth,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = '✅ 成功！\n\n' + result;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ 错误：\n\n' + result;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 网络错误：\n\n' + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 

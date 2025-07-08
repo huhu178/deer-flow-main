@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Deer-Flow AI研究系统
+  deer-flow-api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: deer-flow-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/deerflow
+      - REDIS_URL=redis://redis:6379/0
+      # API配置
+      - API_ENABLE_AUTH=false  # 开发环境可以关闭，生产环境建议开启
+      - API_RATE_LIMIT=100  # 每分钟请求限制
+      # 文件存储配置
+      - REPORTS_BASE_DIR=/app/outputs
+      - ENABLE_N8N_INTEGRATION=true
+    volumes:
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - deer-flow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/reports/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # n8n工作流平台
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      # 数据库配置
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=postgres
+      
+      # n8n配置
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme123  # 生产环境请修改
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      
+      # 集成配置
+      - DEER_FLOW_API_URL=http://deer-flow-api:8000
+      - N8N_PAYLOAD_SIZE_MAX=16777216  # 16MB，支持大型报告
+      
+      # 时区设置
+      - TZ=Asia/Shanghai
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows  # 预置工作流
+    depends_on:
+      - postgres
+      - deer-flow-api
+    networks:
+      - deer-flow-network
+    restart: unless-stopped
+
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_DATABASES=deerflow,n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - deer-flow-network
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - deer-flow-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # SSL证书目录
+    depends_on:
+      - deer-flow-api
+      - n8n
+    networks:
+      - deer-flow-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  deer-flow-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

@@ -1,0 +1,11 @@
+<svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .heavy {
+      font-family: Arial, Helvetica, sans-serif; /* 您可以换成更匹配的字体 */
+      font-size: 60px; /* 调整大小 */
+      font-weight: bold;
+      fill: white; /* 遮罩通常用白色，黑色部分透明 */
+    }
+  </style>
+  <text x="50%" y="50%" dy=".35em" text-anchor="middle" class="heavy">AigenMed</text>
+</svg>

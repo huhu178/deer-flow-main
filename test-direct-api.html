@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直接测试AI系统API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 直接测试AI系统API</h1>
+        <p>这个页面直接调用你的AI系统API，绕过n8n</p>
+        
+        <div class="form-group">
+            <label for="topic">研究主题:</label>
+            <input type="text" id="topic" 
+                   value="人工智能在医疗诊断中的应用" 
+                   placeholder="输入你想研究的主题">
+        </div>
+        
+        <button onclick="testStats()">📊 测试统计API</button>
+        <button onclick="testCreateReport()">📝 测试创建报告</button>
+        <button onclick="testListReports()">📋 测试列出报告</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/reports/webhook/n8n';
+        
+        async function callAPI(action, data = null) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = `正在调用API: ${action}...`;
+            
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        data: data
+                    })
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 成功调用 ${action}:\n\n${result}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ API错误 (${response.status}):\n\n${result}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 网络错误:\n\n${error.message}`;
+            }
+        }
+        
+        function testStats() {
+            callAPI('stats');
+        }
+        
+        function testCreateReport() {
+            const topic = document.getElementById('topic').value;
+            const reportId = 'test_' + Date.now();
+            
+            callAPI('create', {
+                report_id: reportId,
+                content: `# ${topic}\n\n这是一个测试报告。\n\n生成时间: ${new Date().toLocaleString()}`,
+                metadata: {
+                    source: 'direct_test',
+                    topic: topic,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+        
+        function testListReports() {
+            callAPI('list', {
+                limit: 10
+            });
+        }
+    </script>
+</body>
+</html> 

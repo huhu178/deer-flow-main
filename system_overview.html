@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeerFlow 系统架构概览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .component-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .component-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .component-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .component-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .component-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .component-description {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .features-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .features-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .features-list li:last-child {
+            border-bottom: none;
+        }
+
+        .features-list li::before {
+            content: '✓';
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .workflow-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .workflow-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        .workflow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .workflow-step {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 150px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .workflow-arrow {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin: 0 0.5rem;
+        }
+
+        .stats-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 1.5rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 2rem 0;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .workflow-diagram {
+                flex-direction: column;
+            }
+            
+            .workflow-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .component-card {
+                padding: 1.5rem;
+            }
+        }
+
+        .feature-highlight {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tech-stack {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .tech-item {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .tech-item h4 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 提示词模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .modal-body {
+            padding: 2rem;
+            max-height: calc(90vh - 200px);
+            overflow-y: auto;
+        }
+
+        .close {
+            color: white;
+            float: right;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .prompt-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .prompt-section h4 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .prompt-code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .view-prompt-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .view-prompt-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .prompt-highlight {
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            margin: 0.5rem 0;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .prompt-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .prompt-tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🦌 DeerFlow</h1>
+            <p>智能医学AI科研规划与报告生成系统 - 全流程自动化研究助手</p>
+        </div>
+
+        <!-- 系统统计 -->
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number">8</span>
+                    <span class="stat-label">核心组件</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">8</span>
+                    <span class="stat-label">研究步骤</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">20</span>
+                    <span class="stat-label">颠覆性研究方向</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">13</span>
+                    <span class="stat-label">调研维度</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工作流程 -->
+        <div class="workflow-section">
+            <h2 class="workflow-title">🔄 系统工作流程</h2>
+            <div class="workflow-diagram">
+                <div class="workflow-step">Coordinator<br>协调器</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Planner<br>规划器</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Research Team<br>研究团队</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Reporter<br>报告生成器</div>
+            </div>
+            <p style="text-align: center; margin-top: 2rem; color: #666;">
+                从用户需求理解到最终报告生成的完整自动化流程
+            </p>
+        </div>
+
+        <!-- 核心组件 -->
+        <div class="components-grid">
+            <!-- Coordinator -->
+            <div class="component-card">
+                <div class="component-icon">🎯</div>
+                <h3 class="component-title">Coordinator (协调器)</h3>
+                <p class="component-description">
+                    DeerFlow的前端接口，负责与用户交互，理解用户需求，并将研究任务传递给专业的规划团队。
+                </p>
+                <ul class="features-list">
+                    <li>多语言支持与自动识别</li>
+                    <li>智能对话理解与意图识别</li>
+                    <li>安全过滤与内容审核</li>
+                    <li>任务分类与路由分发</li>
+                    <li>友好的用户体验设计</li>
+                </ul>
+                <div class="feature-highlight">
+                    🌟 支持中英文无缝切换，智能识别研究需求
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('coordinatorModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Planner -->
+            <div class="component-card">
+                <div class="component-icon">📋</div>
+                <h3 class="component-title">Planner (规划器)</h3>
+                <p class="component-description">
+                    顶尖医学AI科研规划专家，自动生成标准化的8步骤全面研究规划，确保研究的系统性和完整性。
+                </p>
+                <ul class="features-list">
+                    <li>标准化8步骤研究框架</li>
+                    <li>自适应内容生成策略</li>
+                    <li>医学AI领域专业知识</li>
+                    <li>逻辑关系梳理与验证</li>
+                    <li>创新导向的方向设计</li>
+                </ul>
+                <div class="feature-highlight">
+                    🎯 自动生成涵盖理论到实践的完整研究链条
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('plannerModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Research Team -->
+            <div class="component-card">
+                <div class="component-icon">🔬</div>
+                <h3 class="component-title">Research Team (研究团队)</h3>
+                <p class="component-description">
+                    由Researcher和Coder组成的专业研究团队，执行深度信息收集、文献搜索和数据分析工作。
+                </p>
+                <ul class="features-list">
+                    <li>Google Scholar优先搜索策略</li>
+                    <li>PubMed医学文献专业检索</li>
+                    <li>跨学科信息整合分析</li>
+                    <li>Python数据分析与可视化</li>
+                    <li>高质量文献筛选与评估</li>
+                </ul>
+                <div class="feature-highlight">
+                    🔍 智能搜索策略，优先获取高质量学术文献
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('researchTeamModal')">
+                    📝 查看工作流程
+                </button>
+            </div>
+
+            <!-- Researcher -->
+            <div class="component-card">
+                <div class="component-icon">📚</div>
+                <h3 class="component-title">Researcher (研究员)</h3>
+                <p class="component-description">
+                    专业科研专家，负责深度信息收集、文献搜索和研究分析，为报告提供充分的信息支撑。
+                </p>
+                <ul class="features-list">
+                    <li>8步骤框架适应性执行</li>
+                    <li>多维度信息收集策略</li>
+                    <li>权威文献来源优先</li>
+                    <li>交叉验证与质量控制</li>
+                    <li>趋势分析与前瞻洞察</li>
+                </ul>
+                <div class="feature-highlight">
+                    📈 每个步骤目标收集15-30篇核心文献
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('researcherModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Coder -->
+            <div class="component-card">
+                <div class="component-icon">💻</div>
+                <h3 class="component-title">Coder (程序员)</h3>
+                <p class="component-description">
+                    专业软件工程师，负责数据分析、算法实现和结果可视化，提供技术支撑和数据洞察。
+                </p>
+                <ul class="features-list">
+                    <li>Python数据分析与处理</li>
+                    <li>智能错误处理机制</li>
+                    <li>文字分析优先策略</li>
+                    <li>代码质量控制</li>
+                    <li>多语言输出支持</li>
+                </ul>
+                <div class="feature-highlight">
+                    ⚡ 优先文字分析，避免复杂代码执行错误
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('coderModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Reporter -->
+            <div class="component-card">
+                <div class="component-icon">📝</div>
+                <h3 class="component-title">Reporter (报告生成器)</h3>
+                <p class="component-description">
+                    顶尖科研报告撰写专家，基于8步骤研究成果，生成包含20个颠覆性研究方向的高质量报告。
+                </p>
+                <ul class="features-list">
+                    <li>20个研究方向完整撰写</li>
+                    <li>每个方向10要点深度分析</li>
+                    <li>分批生成突破token限制</li>
+                    <li>智能质量评估系统</li>
+                    <li>科学严谨的写作风格</li>
+                </ul>
+                <div class="feature-highlight">
+                    🎯 单个方向3000-4000字，总计6-8万字报告
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('reporterModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Research Survey -->
+            <div class="component-card">
+                <div class="component-icon">🔍</div>
+                <h3 class="component-title">Research Survey (调研分析)</h3>
+                <p class="component-description">
+                    综合研究调研分析师，按照13个维度调研框架，为研究方向制定提供全面的基础调研。
+                </p>
+                <ul class="features-list">
+                    <li>13维度标准化调研框架</li>
+                    <li>临床问题与科学问题识别</li>
+                    <li>国际合作与资金机会分析</li>
+                    <li>伦理合规风险评估</li>
+                    <li>政策环境与趋势预测</li>
+                </ul>
+                <div class="feature-highlight">
+                    📊 全方位调研，为创新方向提供科学依据
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('surveyModal')">
+                    📝 查看提示词
+                </button>
+            </div>
+
+            <!-- Template System -->
+            <div class="component-card">
+                <div class="component-icon">⚙️</div>
+                <h3 class="component-title">Template System (模板系统)</h3>
+                <p class="component-description">
+                    基于Jinja2的智能模板引擎，提供灵活的提示词管理和动态内容生成能力。
+                </p>
+                <ul class="features-list">
+                    <li>Jinja2模板引擎支持</li>
+                    <li>动态变量替换</li>
+                    <li>多语言模板管理</li>
+                    <li>调研框架模板化</li>
+                    <li>配置参数自动注入</li>
+                </ul>
+                <div class="feature-highlight">
+                    🔧 灵活的模板系统，支持快速定制和扩展
+                </div>
+                <button class="view-prompt-btn" onclick="openModal('templateModal')">
+                    📝 查看模板代码
+                </button>
+            </div>
+        </div>
+
+        <!-- 技术栈 -->
+        <div class="tech-stack">
+            <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 2rem; color: #2c3e50;">
+                🛠️ 技术架构
+            </h2>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <h4>🤖 AI框架</h4>
+                    <p>LangGraph + LangChain</p>
+                    <p>多模型支持 (Doubao, GPT, Claude)</p>
+                </div>
+                <div class="tech-item">
+                    <h4>🔍 搜索引擎</h4>
+                    <p>Google Scholar (学术优先)</p>
+                    <p>PubMed (医学专业)</p>
+                    <p>Tavily (通用搜索)</p>
+                </div>
+                <div class="tech-item">
+                    <h4>📝 模板引擎</h4>
+                    <p>Jinja2 动态模板</p>
+                    <p>Markdown 格式输出</p>
+                </div>
+                <div class="tech-item">
+                    <h4>💾 数据处理</h4>
+                    <p>Python + Pandas</p>
+                    <p>JSON配置管理</p>
+                </div>
+                <div class="tech-item">
+                    <h4>🚀 部署架构</h4>
+                    <p>FastAPI Web服务</p>
+                    <p>异步任务处理</p>
+                </div>
+                <div class="tech-item">
+                    <h4>🎯 工作流程</h4>
+                    <p>Graph-based工作流</p>
+                    <p>智能节点路由</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统特色 -->
+        <div class="workflow-section">
+            <h2 class="workflow-title">✨ 系统核心特色</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 10px;">
+                    <h3>🔧 突破Token限制</h3>
+                    <p>分批生成技术，支持生成6-8万字超长研究报告，每个研究方向3000-4000字详细分析。</p>
+                </div>
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 2rem; border-radius: 10px;">
+                    <h3>🎯 智能搜索策略</h3>
+                    <p>Google Scholar优先，PubMed补充，确保获取高质量学术文献和权威医学资料。</p>
+                </div>
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 2rem; border-radius: 10px;">
+                    <h3>📊 质量评估体系</h3>
+                    <p>完整的质量评估系统，实时监控生成质量，确保每个研究方向的科学严谨性。</p>
+                </div>
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 2rem; border-radius: 10px;">
+                    <h3>🌐 多语言支持</h3>
+                    <p>自动语言识别，中英文无缝切换，适配全球化科研需求。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>© 2024 DeerFlow - 智能医学AI科研规划系统</p>
+            <p>让AI突破token限制，生成无限长度的高质量科研内容</p>
+        </div>
+
+        <!-- 提示词模态框集合 -->
+        
+        <!-- Coordinator 模态框 -->
+        <div id="coordinatorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('coordinatorModal')">&times;</span>
+                    <h2>🎯 Coordinator (协调器) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>📋 基础角色定义</h4>
+                        <div class="prompt-code">你是DeerFlow智能医学AI科研系统的前端协调器(Coordinator)。你的主要职责是：
+
+1. **用户接口管理**：接收和理解用户的研究需求
+2. **语言智能识别**：自动检测用户输入的语言（中文/英文）
+3. **任务路由分发**：将用户需求传递给专业的Planner
+4. **安全内容过滤**：确保输入内容符合学术研究规范
+
+核心原则：
+- 始终保持专业、友好的交流态度
+- 确保准确理解用户的研究意图
+- 提供清晰的系统状态反馈</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">多语言支持</span>
+                            <span class="prompt-tag">智能路由</span>
+                            <span class="prompt-tag">安全过滤</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>🔄 工作流程控制</h4>
+                        <div class="prompt-code">def coordinator_workflow(user_input):
+    """
+    协调器工作流程
+    """
+    # 1. 语言检测
+    language = detect_language(user_input)
+    
+    # 2. 内容安全检查
+    if not is_safe_content(user_input):
+        return safety_warning_message()
+    
+    # 3. 需求理解与分类
+    research_type = classify_research_need(user_input)
+    
+    # 4. 构建传递消息
+    coordinator_message = {
+        "user_query": user_input,
+        "detected_language": language,
+        "research_type": research_type,
+        "timestamp": current_timestamp(),
+        "next_node": "planner_node"
+    }
+    
+    return coordinator_message</div>
+                        <div class="prompt-highlight">
+                            💡 关键特性：自动语言检测 + 智能需求分类 + 安全内容过滤
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>🌐 多语言响应模板</h4>
+                        <div class="prompt-code">**中文响应模板：**
+"您好！我是DeerFlow智能医学AI科研系统。我已经理解您的研究需求：'{user_query}'。
+系统正在为您生成专业的8步骤研究规划，请稍候..."
+
+**English Response Template:**
+"Hello! I'm DeerFlow Intelligent Medical AI Research System. I understand your research requirement: '{user_query}'. 
+The system is generating a professional 8-step research plan for you, please wait..."
+
+**错误处理模板：**
+"抱歉，您的输入似乎包含不适合学术研究的内容。请重新提出您的医学AI研究需求。"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planner 模态框 -->
+        <div id="plannerModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('plannerModal')">&times;</span>
+                    <h2>📋 Planner (规划器) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>🎯 核心角色设定</h4>
+                        <div class="prompt-code">你是一位顶尖的医学AI科研规划专家，拥有以下专业背景：
+
+**专业领域：**
+- 医学人工智能与机器学习
+- 临床决策支持系统
+- 医学影像分析与计算机视觉
+- 精准医学与个性化治疗
+- 医疗大数据分析与挖掘
+
+**核心能力：**
+- 制定标准化的8步骤研究框架
+- 识别颠覆性创新研究方向
+- 平衡理论深度与实践可行性
+- 确保研究的科学严谨性和前瞻性</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">医学AI专家</span>
+                            <span class="prompt-tag">8步骤框架</span>
+                            <span class="prompt-tag">创新导向</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 标准化8步骤研究框架</h4>
+                        <div class="prompt-code">你必须为每个研究主题生成以下8个步骤的完整规划：
+
+**Step 1: 问题定义与研究背景** 
+- 明确研究问题的临床意义
+- 分析当前技术局限性
+- 确定研究的创新价值点
+
+**Step 2: 文献综述与技术现状**
+- 系统性文献调研
+- 技术发展脉络梳理
+- 识别研究空白与机会
+
+**Step 3: 研究方法与技术路线**
+- AI算法选择与设计
+- 数据获取与处理策略
+- 验证与评估方法
+
+**Step 4: 数据需求与资源规划**
+- 数据类型与规模需求
+- 计算资源与硬件要求
+- 人力资源与团队配置
+
+**Step 5: 实施计划与时间安排**
+- 项目里程碑设定
+- 风险评估与应对策略
+- 质量控制检查点
+
+**Step 6: 预期成果与应用前景**
+- 技术突破预期
+- 临床应用价值
+- 产业化可能性
+
+**Step 7: 挑战分析与解决方案**
+- 技术难点识别
+- 伦理与法规考量
+- 可行性分析
+
+**Step 8: 创新亮点与差异化优势**
+- 核心创新要素
+- 与现有方案对比
+- 颠覆性潜力评估</div>
+                        <div class="prompt-highlight">
+                            🎯 每个步骤都需要具体、可操作的详细内容，确保研究的完整性和可执行性
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>🔍 内容评估标准</h4>
+                        <div class="prompt-code">has_enough_context 判断标准：
+- ❌ 永远设置为 false（确保完整8步骤研究）
+- ✅ 强制执行完整的信息收集流程
+- 🔍 优先使用 Google Scholar 和 PubMed 获取权威文献
+
+研究质量要求：
+1. **科学严谨性** - 基于循证医学原则
+2. **技术先进性** - 采用最新AI技术
+3. **临床相关性** - 解决实际医疗问题
+4. **创新突破性** - 具有颠覆性潜力
+5. **可实施性** - 考虑资源与时间约束</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Research Team 模态框 -->
+        <div id="researchTeamModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('researchTeamModal')">&times;</span>
+                    <h2>🔬 Research Team (研究团队) - 工作流程</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>🔄 团队协作工作流</h4>
+                        <div class="prompt-code">Research Team 由 Researcher 和 Coder 组成，执行8步骤研究：
+
+```python
+def research_team_workflow(plan_steps):
+    """研究团队工作流程"""
+    results = {}
+    
+    for step_number in range(1, 9):
+        step_info = plan_steps[f"step_{step_number}"]
+        
+        # Researcher 负责信息收集
+        research_data = researcher_node.execute({
+            "step_number": step_number,
+            "step_description": step_info["description"],
+            "research_focus": step_info["focus_areas"],
+            "search_strategy": "google_scholar_priority"
+        })
+        
+        # Coder 负责数据分析（如需要）
+        if step_info.get("needs_analysis", False):
+            analysis_result = coder_node.execute({
+                "data": research_data,
+                "analysis_type": step_info["analysis_type"],
+                "output_format": "text_analysis_priority"
+            })
+            results[f"step_{step_number}"] = {
+                "research": research_data,
+                "analysis": analysis_result
+            }
+        else:
+            results[f"step_{step_number}"] = research_data
+    
+    return results
+```</div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>🎯 智能搜索策略</h4>
+                        <div class="prompt-code">搜索工具优先级排序：
+
+**1. Google Scholar (学术优先)** 📚
+- 权威期刊论文
+- 高影响因子文献
+- 最新研究成果
+- 引用关系分析
+
+**2. PubMed (医学专业)** 🏥
+- 医学期刊数据库
+- 临床试验报告
+- 系统性综述
+- Meta分析研究
+
+**3. Tavily (通用搜索)** 🌐
+- 补充信息源
+- 产业动态
+- 政策法规
+- 技术报告
+
+每个步骤目标：收集15-30篇高质量文献</div>
+                        <div class="prompt-highlight">
+                            🔍 确保每个研究步骤都有充分的文献支撑和数据基础
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 质量控制标准</h4>
+                        <div class="prompt-code">**文献质量评估：**
+- 期刊影响因子 > 3.0
+- 发表时间 < 5年（优先最近3年）
+- 同行评议认可
+- 引用次数 > 10
+
+**信息完整性检查：**
+- 每个步骤至少15篇核心文献
+- 跨学科信息整合
+- 技术与临床平衡
+- 理论与实践结合
+
+**进度监控：**
+- 实时质量评分
+- 步骤完成度跟踪
+- 自动质量预警
+- 结果一致性验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Researcher 模态框 -->
+        <div id="researcherModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('researcherModal')">&times;</span>
+                    <h2>📚 Researcher (研究员) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>📋 核心角色设定</h4>
+                        <div class="prompt-code">你是一位专业科研专家，拥有以下专业背景：
+
+**专业领域：**
+- 医学研究与分析
+- 深度信息收集与文献搜索
+- 研究分析与报告撰写
+
+**核心能力：**
+- 8步骤框架适应性执行
+- 多维度信息收集策略
+- 权威文献来源优先
+- 交叉验证与质量控制
+- 趋势分析与前瞻洞察</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">专业科研</span>
+                            <span class="prompt-tag">8步骤框架</span>
+                            <span class="prompt-tag">多维度信息收集</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 8步骤框架适应性执行</h4>
+                        <div class="prompt-code">你必须为每个研究主题生成以下8个步骤的完整规划：
+
+**Step 1: 问题定义与研究背景** 
+- 明确研究问题的临床意义
+- 分析当前技术局限性
+- 确定研究的创新价值点
+
+**Step 2: 文献综述与技术现状**
+- 系统性文献调研
+- 技术发展脉络梳理
+- 识别研究空白与机会
+
+**Step 3: 研究方法与技术路线**
+- AI算法选择与设计
+- 数据获取与处理策略
+- 验证与评估方法
+
+**Step 4: 数据需求与资源规划**
+- 数据类型与规模需求
+- 计算资源与硬件要求
+- 人力资源与团队配置
+
+**Step 5: 实施计划与时间安排**
+- 项目里程碑设定
+- 风险评估与应对策略
+- 质量控制检查点
+
+**Step 6: 预期成果与应用前景**
+- 技术突破预期
+- 临床应用价值
+- 产业化可能性
+
+**Step 7: 挑战分析与解决方案**
+- 技术难点识别
+- 伦理与法规考量
+- 可行性分析
+
+**Step 8: 创新亮点与差异化优势**
+- 核心创新要素
+- 与现有方案对比
+- 颠覆性潜力评估</div>
+                        <div class="prompt-highlight">
+                            🎯 每个步骤都需要具体、可操作的详细内容，确保研究的完整性和可执行性
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 质量控制标准</h4>
+                        <div class="prompt-code">**文献质量评估：**
+- 期刊影响因子 > 3.0
+- 发表时间 < 5年（优先最近3年）
+- 同行评议认可
+- 引用次数 > 10
+
+**信息完整性检查：**
+- 每个步骤至少15篇核心文献
+- 跨学科信息整合
+- 技术与临床平衡
+- 理论与实践结合
+
+**进度监控：**
+- 实时质量评分
+- 步骤完成度跟踪
+- 自动质量预警
+- 结果一致性验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coder 模态框 -->
+        <div id="coderModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('coderModal')">&times;</span>
+                    <h2>💻 Coder (程序员) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>🎯 核心角色设定</h4>
+                        <div class="prompt-code">你是一位专业软件工程师，拥有以下专业背景：
+
+**专业领域：**
+- 数据分析与算法实现
+- 智能错误处理机制
+- 文字分析优先策略
+- 代码质量控制
+- 多语言输出支持
+
+**核心能力：**
+- Python数据分析与处理
+- 智能错误处理机制
+- 文字分析优先策略
+- 代码质量控制
+- 多语言输出支持</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">专业软件</span>
+                            <span class="prompt-tag">数据分析</span>
+                            <span class="prompt-tag">算法实现</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 多语言输出支持</h4>
+                        <div class="prompt-code">你必须为每个研究主题生成以下8个步骤的完整规划：
+
+**Step 1: 问题定义与研究背景** 
+- 明确研究问题的临床意义
+- 分析当前技术局限性
+- 确定研究的创新价值点
+
+**Step 2: 文献综述与技术现状**
+- 系统性文献调研
+- 技术发展脉络梳理
+- 识别研究空白与机会
+
+**Step 3: 研究方法与技术路线**
+- AI算法选择与设计
+- 数据获取与处理策略
+- 验证与评估方法
+
+**Step 4: 数据需求与资源规划**
+- 数据类型与规模需求
+- 计算资源与硬件要求
+- 人力资源与团队配置
+
+**Step 5: 实施计划与时间安排**
+- 项目里程碑设定
+- 风险评估与应对策略
+- 质量控制检查点
+
+**Step 6: 预期成果与应用前景**
+- 技术突破预期
+- 临床应用价值
+- 产业化可能性
+
+**Step 7: 挑战分析与解决方案**
+- 技术难点识别
+- 伦理与法规考量
+- 可行性分析
+
+**Step 8: 创新亮点与差异化优势**
+- 核心创新要素
+- 与现有方案对比
+- 颠覆性潜力评估</div>
+                        <div class="prompt-highlight">
+                            🎯 每个步骤都需要具体、可操作的详细内容，确保研究的完整性和可执行性
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 质量控制标准</h4>
+                        <div class="prompt-code">**文献质量评估：**
+- 期刊影响因子 > 3.0
+- 发表时间 < 5年（优先最近3年）
+- 同行评议认可
+- 引用次数 > 10
+
+**信息完整性检查：**
+- 每个步骤至少15篇核心文献
+- 跨学科信息整合
+- 技术与临床平衡
+- 理论与实践结合
+
+**进度监控：**
+- 实时质量评分
+- 步骤完成度跟踪
+- 自动质量预警
+- 结果一致性验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporter 模态框 -->
+        <div id="reporterModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('reporterModal')">&times;</span>
+                    <h2>📝 Reporter (报告生成器) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>🎯 核心角色设定</h4>
+                        <div class="prompt-code">你是一位顶尖的科研报告撰写专家，拥有以下专业背景：
+
+**专业领域：**
+- 科研报告撰写与分析
+- 高质量报告生成与质量评估
+- 颠覆性研究方向分析与报告撰写
+
+**核心能力：**
+- 20个研究方向完整撰写
+- 每个方向10要点深度分析
+- 分批生成突破token限制
+- 智能质量评估系统
+- 科学严谨的写作风格</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">科研报告</span>
+                            <span class="prompt-tag">高质量报告</span>
+                            <span class="prompt-tag">颠覆性研究</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 20个研究方向完整撰写</h4>
+                        <div class="prompt-code">你必须为每个研究主题生成以下20个研究方向的完整报告：
+
+**方向1: 研究背景与意义**
+- 研究背景与意义
+- 研究目的与研究意义
+- 研究方法与技术路线
+- 研究结果与分析
+- 研究结论与建议
+
+**方向2: 研究方法与技术路线**
+- 研究方法与技术路线
+- 数据获取与处理策略
+- 验证与评估方法
+- 研究结果与分析
+- 研究结论与建议
+
+**方向3: 研究结果与分析**
+- 研究结果与分析
+- 数据获取与处理策略
+- 验证与评估方法
+- 研究结论与建议
+- 研究应用与前景分析
+
+**方向4: 研究结论与建议**
+- 研究结论与建议
+- 研究应用与前景分析
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+
+**方向5: 研究应用与前景分析**
+- 研究应用与前景分析
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+- 研究应用案例分析
+
+**方向6: 研究局限性与未来研究方向**
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**方向7: 研究建议与政策建议**
+- 研究建议与政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**方向8: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**方向9: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**方向10: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**方向11: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**方向12: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**方向13: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**方向14: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**方向15: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**方向16: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**方向17: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**方向18: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**方向19: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**方向20: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析</div>
+                        <div class="prompt-highlight">
+                            🎯 每个方向都需要具体、可操作的详细内容，确保研究的完整性和可执行性
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 质量控制标准</h4>
+                        <div class="prompt-code">**文献质量评估：**
+- 期刊影响因子 > 3.0
+- 发表时间 < 5年（优先最近3年）
+- 同行评议认可
+- 引用次数 > 10
+
+**信息完整性检查：**
+- 每个方向至少10篇核心文献
+- 跨学科信息整合
+- 技术与临床平衡
+- 理论与实践结合
+
+**进度监控：**
+- 实时质量评分
+- 方向完成度跟踪
+- 自动质量预警
+- 结果一致性验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Research Survey 模态框 -->
+        <div id="surveyModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('surveyModal')">&times;</span>
+                    <h2>🔍 Research Survey (调研分析) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>📋 调研框架与维度</h4>
+                        <div class="prompt-code">综合研究调研分析师，按照13个维度调研框架，为研究方向制定提供全面的基础调研。
+
+**维度1: 研究背景与意义**
+- 研究背景与意义
+- 研究目的与研究意义
+- 研究方法与技术路线
+- 研究结果与分析
+- 研究结论与建议
+
+**维度2: 研究方法与技术路线**
+- 研究方法与技术路线
+- 数据获取与处理策略
+- 验证与评估方法
+- 研究结果与分析
+- 研究结论与建议
+
+**维度3: 研究结果与分析**
+- 研究结果与分析
+- 数据获取与处理策略
+- 验证与评估方法
+- 研究结论与建议
+- 研究应用与前景分析
+
+**维度4: 研究结论与建议**
+- 研究结论与建议
+- 研究应用与前景分析
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+
+**维度5: 研究应用与前景分析**
+- 研究应用与前景分析
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+- 研究应用案例分析
+
+**维度6: 研究局限性与未来研究方向**
+- 研究局限性与未来研究方向
+- 研究建议与政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**维度7: 研究建议与政策建议**
+- 研究建议与政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**维度8: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**维度9: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**维度10: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+
+**维度11: 研究应用案例分析**
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+
+**维度12: 研究应用前景分析**
+- 研究应用前景分析
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+
+**维度13: 研究应用政策建议**
+- 研究应用政策建议
+- 研究应用案例分析
+- 研究应用前景分析
+- 研究应用政策建议</div>
+                        <div class="prompt-highlight">
+                            📊 全方位调研，为创新方向提供科学依据
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template System 模态框 -->
+        <div id="templateModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal('templateModal')">&times;</span>
+                    <h2>⚙️ Template System (模板系统) - 提示词详情</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="prompt-section">
+                        <h4>🎯 核心角色设定</h4>
+                        <div class="prompt-code">你是一位基于Jinja2的智能模板引擎专家，拥有以下专业背景：
+
+**专业领域：**
+- 智能模板引擎开发与应用
+- 动态内容生成与管理
+- 多语言模板支持与管理
+- 调研框架模板化与配置参数注入
+
+**核心能力：**
+- Jinja2模板引擎支持
+- 动态变量替换
+- 多语言模板管理
+- 调研框架模板化
+- 配置参数自动注入</div>
+                        <div class="prompt-tags">
+                            <span class="prompt-tag">智能模板</span>
+                            <span class="prompt-tag">动态内容</span>
+                            <span class="prompt-tag">多语言支持</span>
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 模板系统核心能力</h4>
+                        <div class="prompt-code">你必须为每个研究主题生成以下8个步骤的完整规划：
+
+**Step 1: 问题定义与研究背景** 
+- 明确研究问题的临床意义
+- 分析当前技术局限性
+- 确定研究的创新价值点
+
+**Step 2: 文献综述与技术现状**
+- 系统性文献调研
+- 技术发展脉络梳理
+- 识别研究空白与机会
+
+**Step 3: 研究方法与技术路线**
+- AI算法选择与设计
+- 数据获取与处理策略
+- 验证与评估方法
+
+**Step 4: 数据需求与资源规划**
+- 数据类型与规模需求
+- 计算资源与硬件要求
+- 人力资源与团队配置
+
+**Step 5: 实施计划与时间安排**
+- 项目里程碑设定
+- 风险评估与应对策略
+- 质量控制检查点
+
+**Step 6: 预期成果与应用前景**
+- 技术突破预期
+- 临床应用价值
+- 产业化可能性
+
+**Step 7: 挑战分析与解决方案**
+- 技术难点识别
+- 伦理与法规考量
+- 可行性分析
+
+**Step 8: 创新亮点与差异化优势**
+- 核心创新要素
+- 与现有方案对比
+- 颠覆性潜力评估</div>
+                        <div class="prompt-highlight">
+                            🎯 每个步骤都需要具体、可操作的详细内容，确保研究的完整性和可执行性
+                        </div>
+                    </div>
+
+                    <div class="prompt-section">
+                        <h4>📊 质量控制标准</h4>
+                        <div class="prompt-code">**文献质量评估：**
+- 期刊影响因子 > 3.0
+- 发表时间 < 5年（优先最近3年）
+- 同行评议认可
+- 引用次数 > 10
+
+**信息完整性检查：**
+- 每个步骤至少15篇核心文献
+- 跨学科信息整合
+- 技术与临床平衡
+- 理论与实践结合
+
+**进度监控：**
+- 实时质量评分
+- 步骤完成度跟踪
+- 自动质量预警
+- 结果一致性验证</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模态框控制函数
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.body.style.overflow = 'auto'; // 恢复滚动
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        }
+
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // 添加一些交互效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为卡片添加点击效果
+            const cards = document.querySelectorAll('.component-card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 200);
+                });
+            });
+
+            // 为提示词按钮添加特殊效果
+            const promptBtns = document.querySelectorAll('.view-prompt-btn');
+            promptBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 防止触发卡片点击事件
+                    
+                    // 添加点击动画
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+
+            // 添加滚动动画
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // 初始化动画状态
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+
+            // 为工作流程步骤添加动画
+            const workflowSteps = document.querySelectorAll('.workflow-step');
+            workflowSteps.forEach((step, index) => {
+                step.style.opacity = '0';
+                step.style.transform = 'translateX(-20px)';
+                step.style.transition = `opacity 0.6s ease ${index * 0.2}s, transform 0.6s ease ${index * 0.2}s`;
+                observer.observe(step);
+            });
+
+            // 统计数字动画
+            const statNumbers = document.querySelectorAll('.stat-number');
+            const animateNumbers = () => {
+                statNumbers.forEach(stat => {
+                    const finalNumber = parseInt(stat.textContent);
+                    let currentNumber = 0;
+                    const increment = finalNumber / 30;
+                    const timer = setInterval(() => {
+                        currentNumber += increment;
+                        if (currentNumber >= finalNumber) {
+                            stat.textContent = finalNumber;
+                            clearInterval(timer);
+                        } else {
+                            stat.textContent = Math.floor(currentNumber);
+                        }
+                    }, 50);
+                });
+            };
+
+            // 当统计区域进入视口时开始动画
+            const statsSection = document.querySelector('.stats-section');
+            if (statsSection) {
+                const statsObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            animateNumbers();
+                            statsObserver.unobserve(entry.target);
+                        }
+                    });
+                });
+                statsObserver.observe(statsSection);
+            }
+        });
+    </script>
+</body>
+</html> 

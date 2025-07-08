@@ -1,0 +1,99 @@
+{
+  "reports": {
+    "test_n8n_001": {
+      "id": "test_n8n_001",
+      "filename": "test_n8n_001_20250630_141901.md",
+      "path": "outputs\\reports\\test_n8n_001_20250630_141901.md",
+      "size": 61,
+      "hash": "573234c8bccab93894813835cf8bdd06",
+      "created_time": "20250630_141901",
+      "metadata": {
+        "source": "n8n_test",
+        "type": "test",
+        "created_via": "api"
+      },
+      "word_count": 4,
+      "char_count": 27
+    },
+    "test_1751264454575": {
+      "id": "test_1751264454575",
+      "filename": "test_1751264454575_20250630_142054.md",
+      "path": "outputs\\reports\\test_1751264454575_20250630_142054.md",
+      "size": 72,
+      "hash": "8321c0934db10e7376d1793906406d24",
+      "created_time": "20250630_142054",
+      "metadata": {
+        "source": "direct_test",
+        "topic": "111",
+        "timestamp": "2025-06-30T06:20:54.585Z"
+      },
+      "word_count": 6,
+      "char_count": 42
+    },
+    "n8n_20250630_024134": {
+      "id": "n8n_20250630_024134",
+      "filename": "n8n_20250630_024134_20250630_144134.md",
+      "path": "outputs\\reports\\n8n_20250630_024134_20250630_144134.md",
+      "size": 92,
+      "hash": "aff143d0c08e982ca6b239f30546f14c",
+      "created_time": "20250630_144134",
+      "metadata": {
+        "source": "n8n",
+        "topic": "",
+        "language": "",
+        "depth": ""
+      },
+      "word_count": 11,
+      "char_count": 57
+    },
+    "n8n_20250630_024355": {
+      "id": "n8n_20250630_024355",
+      "filename": "n8n_20250630_024355_20250630_144355.md",
+      "path": "outputs\\reports\\n8n_20250630_024355_20250630_144355.md",
+      "size": 92,
+      "hash": "b73b6bca0e865812e367668ed7c7d38f",
+      "created_time": "20250630_144355",
+      "metadata": {
+        "source": "n8n",
+        "topic": "",
+        "language": "",
+        "depth": ""
+      },
+      "word_count": 11,
+      "char_count": 57
+    },
+    "n8n_20250630_030309": {
+      "id": "n8n_20250630_030309",
+      "filename": "n8n_20250630_030309_20250630_150309.md",
+      "path": "outputs\\reports\\n8n_20250630_030309_20250630_150309.md",
+      "size": 92,
+      "hash": "f116e9214c5ab7c61602b01cf3a10c6b",
+      "created_time": "20250630_150309",
+      "metadata": {
+        "source": "n8n",
+        "topic": "",
+        "language": "",
+        "depth": ""
+      },
+      "word_count": 11,
+      "char_count": 57
+    },
+    "n8n_20250630_031003": {
+      "id": "n8n_20250630_031003",
+      "filename": "n8n_20250630_031003_20250630_151003.md",
+      "path": "outputs\\reports\\n8n_20250630_031003_20250630_151003.md",
+      "size": 122,
+      "hash": "ac24cbfdc48b1e323ffbd1693752ffad",
+      "created_time": "20250630_151003",
+      "metadata": {
+        "source": "n8n",
+        "topic": "默认主题",
+        "language": "zh",
+        "depth": "summary"
+      },
+      "word_count": 15,
+      "char_count": 73
+    }
+  },
+  "last_updated": "2025-06-30T15:10:03.617156"
+}

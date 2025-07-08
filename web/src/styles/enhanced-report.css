@@ -1,0 +1,367 @@
+/* 增强报告渲染样式 */
+
+/* 打印样式 */
+@media print {
+  .enhanced-report-renderer {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .enhanced-report-toolbar,
+  .enhanced-report-toc {
+    display: none !important;
+  }
+  
+  .enhanced-report-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .enhanced-report-progress {
+    display: none !important;
+  }
+}
+
+/* 滚动条美化 */
+.enhanced-report-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.enhanced-report-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.enhanced-report-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.enhanced-report-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 目录滚动条 */
+.enhanced-report-toc::-webkit-scrollbar {
+  width: 6px;
+}
+
+.enhanced-report-toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.enhanced-report-toc::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+/* 动画效果 */
+.enhanced-report-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 高亮效果 */
+.enhanced-report-highlight {
+  background: linear-gradient(120deg, #fef3c7 0%, #fde68a 100%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 代码块增强 */
+.enhanced-report-code-block {
+  position: relative;
+  background: #1f2937;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.enhanced-report-code-header {
+  background: #374151;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #9ca3af;
+  border-bottom: 1px solid #4b5563;
+}
+
+.enhanced-report-code-content {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+/* 表格增强 */
+.enhanced-report-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 24px 0;
+}
+
+.enhanced-report-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.enhanced-report-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.enhanced-report-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.enhanced-report-table tr:hover {
+  background: #f9fafb;
+}
+
+/* 引用块增强 */
+.enhanced-report-blockquote {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);
+  padding: 16px 20px;
+  margin: 24px 0;
+  border-radius: 0 8px 8px 0;
+  position: relative;
+}
+
+.enhanced-report-blockquote::before {
+  content: '"';
+  font-size: 48px;
+  color: #3b82f6;
+  opacity: 0.3;
+  position: absolute;
+  top: -8px;
+  left: 16px;
+  font-family: serif;
+}
+
+/* 列表增强 */
+.enhanced-report-list {
+  margin: 16px 0;
+}
+
+.enhanced-report-list li {
+  margin: 8px 0;
+  padding-left: 8px;
+}
+
+.enhanced-report-list li::marker {
+  color: #3b82f6;
+  font-weight: bold;
+}
+
+/* 标题锚点 */
+.enhanced-report-heading {
+  position: relative;
+  scroll-margin-top: 80px;
+}
+
+.enhanced-report-heading:hover .enhanced-report-anchor {
+  opacity: 1;
+}
+
+.enhanced-report-anchor {
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: normal;
+}
+
+.enhanced-report-anchor:hover {
+  color: #3b82f6;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .enhanced-report-toc {
+    width: 100% !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100% !important;
+    z-index: 50 !important;
+    background: white !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .enhanced-report-toc.open {
+    transform: translateX(0);
+  }
+  
+  .enhanced-report-toolbar {
+    padding: 8px 16px !important;
+  }
+  
+  .enhanced-report-toolbar .enhanced-report-title {
+    font-size: 14px !important;
+  }
+  
+  .enhanced-report-metadata {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* 深色主题 */
+.enhanced-report-dark {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.enhanced-report-dark .enhanced-report-toolbar {
+  background: rgba(17, 24, 39, 0.9);
+  border-color: #374151;
+}
+
+.enhanced-report-dark .enhanced-report-toc {
+  background: rgba(17, 24, 39, 0.5);
+  border-color: #374151;
+}
+
+.enhanced-report-dark .enhanced-report-metadata {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.enhanced-report-dark .enhanced-report-blockquote {
+  background: linear-gradient(90deg, #1e3a8a 0%, #1f2937 100%);
+  border-color: #3b82f6;
+}
+
+.enhanced-report-dark .enhanced-report-table th {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.enhanced-report-dark .enhanced-report-table td {
+  border-color: #4b5563;
+}
+
+.enhanced-report-dark .enhanced-report-table tr:hover {
+  background: #374151;
+}
+
+/* 学术主题 */
+.enhanced-report-academic {
+  font-family: 'Times New Roman', 'SimSun', serif;
+  line-height: 1.8;
+}
+
+.enhanced-report-academic .enhanced-report-heading {
+  font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+}
+
+.enhanced-report-academic .enhanced-report-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+/* 现代主题 */
+.enhanced-report-modern {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.enhanced-report-modern .enhanced-report-heading {
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enhanced-report-modern .enhanced-report-blockquote {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+}
+
+/* 加载动画 */
+.enhanced-report-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.enhanced-report-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 工具提示 */
+.enhanced-report-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.enhanced-report-tooltip .enhanced-report-tooltip-text {
+  visibility: hidden;
+  width: 120px;
+  background-color: #374151;
+  color: white;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.enhanced-report-tooltip:hover .enhanced-report-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 进度指示器 */
+.enhanced-report-progress-ring {
+  width: 24px;
+  height: 24px;
+}
+
+.enhanced-report-progress-ring circle {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 2;
+}
+
+.enhanced-report-progress-ring .progress {
+  stroke: #3b82f6;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+} 
