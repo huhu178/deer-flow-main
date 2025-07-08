@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, X, Mic, Upload, Send } from "lucide-react";
+import { ArrowUp, X, Upload, Send } from "lucide-react";
 import {
   type KeyboardEvent,
   useCallback,
@@ -22,7 +22,7 @@ import {
 } from "~/core/store";
 import { cn } from "~/lib/utils";
 
-// 语音识别类型定义 - 暂时移除以避免构建错误
+// All SpeechRecognition related types are temporarily disabled to fix build errors.
 /*
 interface CustomSpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -104,12 +104,7 @@ export function MedicalInputBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // --- 语音识别相关状态 (浏览器内置API) - 暂时禁用 ---
-  const [isRecording, setIsRecording] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState('语音功能已禁用');
-  const [voiceError, setVoiceError] = useState<string | null>('语音功能已禁用');
-  // const recognitionRef = useRef<SpeechRecognition | null>(null);
-  // --- 结束语音识别相关状态 ---
+  // --- All speech recognition logic has been temporarily disabled. ---
 
   useEffect(() => {
     if (feedback) {
@@ -125,135 +120,18 @@ export function MedicalInputBox({
     }, 0);
   }, [feedback]);
 
-  // --- 初始化浏览器语音识别 ---
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // 检查浏览器是否支持语音识别
-      const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
-      if (!SpeechRecognitionClass) {
-        setVoiceError('您的浏览器不支持语音识别功能');
-        setVoiceStatus('语音识别不可用');
-        return;
-      }
-
-      const recognition = new SpeechRecognitionClass();
-      
-      // 配置语音识别
-      recognition.continuous = false; // 不连续识别
-      recognition.interimResults = true; // 显示临时结果
-      recognition.lang = 'zh-CN'; // 设置为中文
-
-      // 处理识别结果
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result && result[0]) {
-            const transcript = result[0].transcript;
-            if (result.isFinal) {
-              finalTranscript += transcript;
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-        }
-
-        // 更新消息内容
-        if (finalTranscript) {
-          setMessage(prev => prev + finalTranscript);
-          setVoiceStatus(`识别完成: ${finalTranscript.substring(0, 20)}...`);
-        } else if (interimTranscript) {
-          setVoiceStatus(`正在识别: ${interimTranscript.substring(0, 20)}...`);
-        }
-      };
-
-      // 处理识别开始
-      recognition.onstart = () => {
-        setIsRecording(true);
-        setVoiceStatus('正在听取语音...');
-        setVoiceError(null);
-        console.log('语音识别已开始');
-      };
-
-      // 处理识别结束
-      recognition.onend = () => {
-        setIsRecording(false);
-        setVoiceStatus('点击开始语音输入');
-        console.log('语音识别已结束');
-      };
-
-      // 处理识别错误
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        setIsRecording(false);
-        
-        let errorMessage = '';
-        switch (event.error) {
-          case 'no-speech':
-            errorMessage = '没有检测到语音，请重试';
-            break;
-          case 'audio-capture':
-            errorMessage = '无法访问麦克风，请检查权限';
-            break;
-          case 'not-allowed':
-            errorMessage = '麦克风权限被拒绝';
-            break;
-          case 'network':
-            errorMessage = '网络连接问题，语音识别服务暂时不可用';
-            break;
-          case 'service-not-allowed':
-            errorMessage = '语音识别服务不可用';
-            break;
-          default:
-            errorMessage = `语音识别遇到问题: ${event.error}`;
-        }
-        
-        setVoiceStatus(errorMessage);
-        setVoiceError(errorMessage);
-        
-        console.error('语音识别错误:', event.error);
-        
-        // 5秒后重置状态
-        setTimeout(() => {
-          setVoiceStatus('点击开始语音输入');
-          setVoiceError(null);
-        }, 5000);
-      };
-
-      // recognitionRef.current = recognition;
-    }
-
-    return () => {
-      // if (recognitionRef.current) {
-      //   recognitionRef.current.stop();
-      //   recognitionRef.current = null;
-      // }
-    };
-  }, []);
-  // --- 结束初始化浏览器语音识别 ---
-
   const handleSendMessage = useCallback(() => {
-    console.log("MedicalInputBox: handleSendMessage CALLED. Message:", message, "Responding:", responding);
     if (responding) {
-      console.log("MedicalInputBox: Currently responding, calling onCancel.");
       onCancel?.();
     } else {
       if (message.trim() === "") {
-        console.log("MedicalInputBox: Message is empty, not sending.");
         return;
       }
-      if (onSend) {
-        console.log("MedicalInputBox: Calling onSend prop with message:", message);
-        onSend(message, {
-          interruptFeedback: feedback?.option.value,
-        });
-        setMessage("");
-        onRemoveFeedback?.();
-      } else {
-        console.error("MedicalInputBox: onSend prop is undefined or not a function!");
-      }
+      onSend?.(message, {
+        interruptFeedback: feedback?.option.value,
+      });
+      setMessage("");
+      onRemoveFeedback?.();
     }
   }, [responding, onCancel, message, onSend, feedback, onRemoveFeedback]);
 
@@ -276,141 +154,80 @@ export function MedicalInputBox({
     [responding, imeStatus, handleSendMessage],
   );
 
-  // --- 语音按钮点击处理 (使用浏览器API) ---
-  const handleVoiceButtonClick = useCallback(() => {
-    // if (!recognitionRef.current) {
-    //   setVoiceError('语音识别功能未初始化');
-    //   return;
-    // }
-
-    // if (!isRecording) {
-    //   try {
-    //     // 开始语音识别
-    //     recognitionRef.current.start();
-    //   } catch (error) {
-    //     console.error('启动语音识别失败:', error);
-    //     setVoiceError('启动语音识别失败');
-    //   }
-    // } else {
-    //   try {
-    //     // 停止语音识别
-    //     recognitionRef.current.stop();
-    //   } catch (error) {
-    //     console.error('停止语音识别失败:', error);
-    //     setVoiceError('停止语音识别失败');
-    //   }
-    // }
-  }, []);
-  // --- 结束语音按钮点击处理 ---
-
-  const handleSendButtonClick = useCallback(() => {
-    handleSendMessage();
-  }, [handleSendMessage]);
-
   return (
-    <div className="flex items-center space-x-2">
-      <div
-        className={cn(
-          "flex-1 relative",
-          className,
-        )}
-      >
-        <AnimatePresence>
-          {feedback && (
-            <motion.div
-              ref={feedbackRef}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="flex items-center gap-1 whitespace-nowrap"
-            >
-              <div className="text-muted-foreground rounded-full border px-2 py-1 text-xs">
-                {feedback.option.value}
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-5 w-5 rounded-full p-0"
-                onClick={onRemoveFeedback}
-              >
-                <X size={12} />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <Tooltip title={voiceError || voiceStatus}>
-          <Button
-            variant={isRecording ? "default" : "outline"}
-            size="icon"
-            className={cn(
-              "h-10 w-10 rounded-full",
-              isRecording && "animate-pulse bg-red-500 hover:bg-red-600 text-white",
-              voiceError && "bg-red-100 text-red-600 hover:bg-red-200",
-              !voiceError && !isRecording && "hover:bg-blue-50 hover:border-blue-300"
-            )}
-            onClick={handleVoiceButtonClick}
-            disabled={!!voiceError && !recognitionRef.current}
-            title="语音输入"
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-        </Tooltip>
+    <motion.div
+      className={cn(
+        "bg-background/80 relative w-full rounded-2xl border p-4 shadow-lg backdrop-blur-md",
+        className,
+      )}
+      initial={{ y: 10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <div className="flex w-full items-start gap-4">
         <Textarea
           ref={textareaRef}
-          placeholder={responding ? "AI正在分析中..." : "请描述您的研究需求或数据分析要求..."}
-          className="w-full p-4 pr-10 border rounded-lg resize-none h-16 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xl leading-relaxed scrollbar-hide text-gray-800 bg-white placeholder-gray-500 border-blue-200"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            fontSize: '20px',
-            lineHeight: '1.5',
-            color: '#1f2937',
-            backgroundColor: '#ffffff'
-          }}
-          rows={1}
+          className="bg-background/0 text-md min-h-[60px] flex-1 resize-none border-none p-0 shadow-none focus-visible:ring-0"
+          placeholder="例如：请对这份DXA影像进行骨密度分析，并评估未来骨折风险..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          onCompositionStart={() => {
-            setImeStatus("active");
-          }}
-          onCompositionEnd={() => {
-            setImeStatus("inactive");
-          }}
-          disabled={responding}
+          onCompositionStart={() => setImeStatus("active")}
+          onCompositionEnd={() => setImeStatus("inactive")}
         />
-        <div className="absolute right-2 top-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-gray-400 hover:text-gray-600 h-8 w-8"
-            title="上传文件"
+        <Button
+          variant="default"
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-full"
+          onClick={handleSendMessage}
+          disabled={!message.trim() || responding}
+        >
+          {responding ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
+          ) : (
+            <ArrowUp size={20} />
+          )}
+        </Button>
+      </div>
+
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            ref={feedbackRef}
+            className="bg-brand/10 border-brand/20 text-brand mt-3 flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-sm"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
           >
-            <Upload className="h-4 w-4" />
-          </Button>
+            <div>{feedback.option.text}</div>
+            <X
+              className="cursor-pointer opacity-60"
+              size={16}
+              onClick={onRemoveFeedback}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mt-4 flex items-center justify-between border-t pt-3">
+        <div className="flex items-center gap-2">
+          {/* Voice recognition button is temporarily disabled */}
+          {/* <Tooltip title="语音输入">
+            <Button variant="ghost" size="icon" className="text-muted-foreground">
+              <Mic size={18} />
+            </Button>
+          </Tooltip> */}
+          <Tooltip title="上传文件（即将推出）">
+            <Button variant="ghost" size="icon" className="text-muted-foreground" disabled>
+              <Upload size={18} />
+            </Button>
+          </Tooltip>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          按下 <kbd className="rounded-md border bg-muted px-1.5 py-0.5 text-xs">Enter</kbd> 发送, <kbd className="rounded-md border bg-muted px-1.5 py-0.5 text-xs">Shift + Enter</kbd> 换行
         </div>
       </div>
-      <Tooltip title="启用深度调研">
-        <Button
-          size={size === "large" ? "lg" : "sm"}
-          variant={backgroundInvestigation ? "default" : "ghost"}
-          className="h-8 w-8 shrink-0 rounded-full p-0"
-          onClick={() => {
-            setEnableBackgroundInvestigation(!backgroundInvestigation);
-          }}
-        >
-          <Detective className={size === "large" ? "h-5 w-5" : "h-4 w-4"} />
-        </Button>
-      </Tooltip>
-      <Button
-        size={size === "large" ? "lg" : "sm"}
-        variant={responding ? "destructive" : "default"}
-        className="h-8 w-8 shrink-0 rounded-full p-0"
-        onClick={handleSendButtonClick}
-        disabled={!responding && message.trim() === ""}
-      >
-        {responding ? <X size={16} /> : <ArrowUp size={16} />}
-      </Button>
-    </div>
+    </motion.div>
   );
 } 
