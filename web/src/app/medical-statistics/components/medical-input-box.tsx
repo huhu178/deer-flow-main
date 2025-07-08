@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, X, Upload, Send } from "lucide-react";
+import { ArrowUp, X, Upload } from "lucide-react";
 import {
   type KeyboardEvent,
   useCallback,
@@ -11,15 +11,10 @@ import {
   useState,
 } from "react";
 
-import { Detective } from "~/components/deer-flow/icons/detective";
 import { Tooltip } from "~/components/deer-flow/tooltip";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { Option } from "~/core/messages";
-import {
-  setEnableBackgroundInvestigation,
-  useSettingsStore,
-} from "~/core/store";
 import { cn } from "~/lib/utils";
 
 // All SpeechRecognition related types are temporarily disabled to fix build errors.
@@ -71,7 +66,6 @@ declare global {
 /**
  * 医学统计分析输入框组件 - 匹配原始界面样式
  * @param className 自定义样式类名
- * @param size 大小（大号或正常）
  * @param responding 是否正在响应
  * @param feedback 反馈选项
  * @param onSend 发送消息的回调函数
@@ -80,7 +74,6 @@ declare global {
  */
 export function MedicalInputBox({
   className,
-  size,
   responding,
   feedback,
   onSend,
@@ -88,7 +81,6 @@ export function MedicalInputBox({
   onRemoveFeedback,
 }: {
   className?: string;
-  size?: "large" | "normal";
   responding?: boolean;
   feedback?: { option: Option } | null;
   onSend?: (message: string, options?: { interruptFeedback?: string }) => void;
@@ -97,10 +89,6 @@ export function MedicalInputBox({
 }) {
   const [message, setMessage] = useState("");
   const [imeStatus, setImeStatus] = useState<"active" | "inactive">("inactive");
-  const [indent, setIndent] = useState(0);
-  const backgroundInvestigation = useSettingsStore(
-    (state) => state.general.enableBackgroundInvestigation,
-  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
@@ -109,11 +97,6 @@ export function MedicalInputBox({
   useEffect(() => {
     if (feedback) {
       setMessage("");
-      setTimeout(() => {
-        if (feedbackRef.current) {
-          setIndent(feedbackRef.current.offsetWidth);
-        }
-      }, 200);
     }
     setTimeout(() => {
       textareaRef.current?.focus();

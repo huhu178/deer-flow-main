@@ -243,25 +243,18 @@ function MedicalPlanCard({
                   if (option.value === "accepted") {
                     void handleAccept();
                   } else if (option.value === "edit_plan") {
-                    void onSendMessage?.(
+                    onSendMessage?.(
                       "[EDIT_PLAN] 请根据我的要求修改研究计划",
                       {
                         interruptFeedback: "edit_plan",
                       },
                     );
                   } else {
-                    onFeedback?.({
-                      option,
-                    });
+                    onFeedback?.({ option });
                   }
                 }}
               >
-                {
-                  {
-                    "Edit plan": "编辑计划",
-                    "Start research": "开始研究",
-                  }[option.text] ?? option.text
-                }
+                {option.text}
               </Button>
             ))}
           </motion.div>

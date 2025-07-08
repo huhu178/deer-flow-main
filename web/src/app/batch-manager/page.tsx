@@ -1,26 +1,24 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Textarea } from '~/components/ui/textarea';
-import { Progress } from '~/components/ui/progress';
-import { Badge } from '~/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { 
   Play, 
-  Pause, 
   Square, 
   Download, 
   Plus, 
   Trash2, 
   RefreshCw,
-  FileText,
-  Settings,
   Eye,
   Edit
 } from 'lucide-react';
+
+import { Badge } from '~/components/ui/badge';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Input } from '~/components/ui/input';
+import { Progress } from '~/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { Textarea } from '~/components/ui/textarea';
 
 interface BatchTask {
   task_name: string;
@@ -36,7 +34,7 @@ interface BatchItem {
   type: string;
   title: string;
   content_template: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   section_number: number;
   estimated_tokens: number;
 }
@@ -158,7 +156,7 @@ const BatchManagerPage: React.FC = () => {
           batch_size: 5,
           max_tokens_per_item: 4000
         });
-        loadTasks();
+        await loadTasks();
         setCurrentTask(data.task_name);
         setActiveTab('items');
       } else {
@@ -206,7 +204,7 @@ const BatchManagerPage: React.FC = () => {
           metadata: '{}',
           estimated_tokens: 0
         });
-        loadTaskDetails(currentTask);
+        await loadTaskDetails(currentTask);
       } else {
         alert(`添加项目失败: ${data.message}`);
       }
@@ -237,7 +235,7 @@ const BatchManagerPage: React.FC = () => {
     
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as { type: string; data: unknown };
         
         // 添加日志
         const timestamp = new Date().toLocaleTimeString();
@@ -246,522 +244,288 @@ const BatchManagerPage: React.FC = () => {
         // 处理不同类型的事件
         switch (data.type) {
           case 'progress':
-            setProgress(data.data);
+            setProgress(data.data as BatchProgress);
             break;
-          case 'item_completed':
-            setResults(prev => [...prev, data.data]);
-            break;
-          case 'completed':
-            setIsGenerating(false);
-            loadTaskDetails(currentTask);
+          case 'result':
+            setResults(prev => [...prev, data.data as BatchResult]);
             break;
           case 'error':
-            setIsGenerating(false);
-            alert(`生成失败: ${data.data.error}`);
+            setProgress(prev => prev ? { ...prev, error_message: data.data as string } : null);
             break;
-          case 'end':
+          case 'complete':
+            eventSource.close();
             setIsGenerating(false);
             break;
         }
       } catch (error) {
-        console.error('解析事件数据失败:', error);
+        console.error('处理流式数据失败:', error);
       }
     };
     
-    eventSource.onerror = (error) => {
-      console.error('EventSource错误:', error);
+    eventSource.onerror = () => {
+      setStreamLogs(prev => [...prev, '与服务器断开连接，尝试重新连接...']);
       setIsGenerating(false);
-      eventSource.close();
+      // EventSource 会自动重连，这里只更新UI状态
     };
   };
   
   // 停止生成
   const stopGeneration = async () => {
+    if (!currentTask) {
+      alert('没有正在进行的任务');
+      return;
+    }
+    
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
     
-    if (currentTask) {
-      try {
-        await fetch(`${API_BASE}/cancel/${currentTask}`, { method: 'POST' });
-      } catch (error) {
-        console.error('取消生成失败:', error);
-      }
+    try {
+      await fetch(`${API_BASE}/stop/${currentTask}`, { method: 'POST' });
+      setIsGenerating(false);
+      setStreamLogs(prev => [...prev, '手动停止任务。']);
+    } catch (error) {
+      console.error('停止任务失败:', error);
     }
-    
-    setIsGenerating(false);
   };
   
   // 下载报告
   const downloadReport = async (taskName: string) => {
     try {
       const response = await fetch(`${API_BASE}/download/${taskName}`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${taskName}_report.txt`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        alert('下载失败');
+      if (!response.ok) {
+        throw new Error('报告下载失败');
       }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${taskName}_report.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (error) {
-      console.error('下载失败:', error);
-      alert('下载失败');
+      console.error('下载报告失败:', error);
+      alert('下载报告失败');
     }
   };
-  
+
   // 删除任务
   const deleteTask = async (taskName: string) => {
-    if (!confirm(`确定要删除任务 "${taskName}" 吗？`)) {
-      return;
-    }
-    
-    try {
-      await fetch(`${API_BASE}/delete/${taskName}`, { method: 'DELETE' });
-      loadTasks();
-      if (currentTask === taskName) {
-        setCurrentTask('');
-        setItems([]);
-        setProgress(null);
-        setResults([]);
+    if (window.confirm(`确定要删除任务 "${taskName}" 吗？`)) {
+      try {
+        const response = await fetch(`${API_BASE}/delete/${taskName}`, { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+          await loadTasks();
+        } else {
+          alert(`删除失败: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('删除任务失败:', error);
       }
-    } catch (error) {
-      console.error('删除任务失败:', error);
-      alert('删除任务失败');
     }
   };
-  
-  // 快速创建DXA研究任务
+
+  // 快速创建DXA任务
   const quickCreateDXATask = async () => {
-    const taskName = `dxa_research_${Date.now()}`;
-    const reportName = `DXA影像预测全身健康状态研究_${new Date().toLocaleDateString()}`;
-    
     try {
-      const response = await fetch(`${API_BASE}/quick-create/dxa_research?task_name=${taskName}&report_name=${encodeURIComponent(reportName)}`, {
-        method: 'POST'
-      });
-      
+      const response = await fetch(`${API_BASE}/quick-create-dxa`, { method: 'POST' });
       const data = await response.json();
       if (data.success) {
-        loadTasks();
-        setCurrentTask(taskName);
+        await loadTasks();
+        setCurrentTask(data.task_name);
+        await loadTaskDetails(data.task_name);
         setActiveTab('items');
-        setTimeout(() => loadTaskDetails(taskName), 500);
       } else {
-        alert(`快速创建失败: ${data.message}`);
+        alert('快速创建失败');
       }
     } catch (error) {
       console.error('快速创建失败:', error);
-      alert('快速创建失败');
     }
   };
-  
-  // 组件挂载时加载数据
+
   useEffect(() => {
-    loadTasks();
+    loadTasks().catch(console.error);
   }, []);
   
-  // 当前任务变化时加载详情
   useEffect(() => {
     if (currentTask) {
-      loadTaskDetails(currentTask);
+      loadTaskDetails(currentTask).catch(console.error);
     }
   }, [currentTask]);
-  
-  // 清理EventSource
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, []);
-  
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">分批输出管理器</h1>
-        <div className="flex gap-2">
-          <Button onClick={quickCreateDXATask} variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            快速创建DXA研究
-          </Button>
-          <Button onClick={loadTasks} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            刷新
-          </Button>
-        </div>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="tasks">任务管理</TabsTrigger>
-          <TabsTrigger value="items">项目管理</TabsTrigger>
-          <TabsTrigger value="generate">生成控制</TabsTrigger>
-          <TabsTrigger value="results">结果查看</TabsTrigger>
-          <TabsTrigger value="logs">生成日志</TabsTrigger>
-        </TabsList>
-        
-        {/* 任务管理 */}
-        <TabsContent value="tasks" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>创建新任务</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">任务名称</label>
-                  <Input
-                    value={newTaskForm.task_name}
-                    onChange={(e) => setNewTaskForm(prev => ({ ...prev, task_name: e.target.value }))}
-                    placeholder="输入任务名称"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">报告名称</label>
-                  <Input
-                    value={newTaskForm.report_name}
-                    onChange={(e) => setNewTaskForm(prev => ({ ...prev, report_name: e.target.value }))}
-                    placeholder="输入报告名称"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">批次大小</label>
-                  <Input
-                    type="number"
-                    value={newTaskForm.batch_size}
-                    onChange={(e) => setNewTaskForm(prev => ({ ...prev, batch_size: parseInt(e.target.value) }))}
-                    min="1"
-                    max="20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">每项最大Token数</label>
-                  <Input
-                    type="number"
-                    value={newTaskForm.max_tokens_per_item}
-                    onChange={(e) => setNewTaskForm(prev => ({ ...prev, max_tokens_per_item: parseInt(e.target.value) }))}
-                    min="1000"
-                    max="8000"
-                  />
-                </div>
-              </div>
-              <Button onClick={createTask} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                创建任务
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>任务列表</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {tasks.map((task) => (
-                  <div
-                    key={task.task_name}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      currentTask === task.task_name ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                    }`}
-                    onClick={() => setCurrentTask(task.task_name)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">{task.task_name}</h3>
-                        <p className="text-sm text-gray-600">{task.report_name}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={task.status === 'completed' ? 'default' : 'secondary'}>
-                            {task.status}
-                          </Badge>
-                          <span className="text-sm text-gray-500">
-                            {task.completed_items}/{task.total_items} 项目
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {task.progress_percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {task.status === 'completed' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadReport(task.task_name);
-                            }}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTask(task.task_name);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {task.progress_percentage > 0 && (
-                      <Progress value={task.progress_percentage} className="mt-2" />
-                    )}
-                  </div>
-                ))}
-                {tasks.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">暂无任务</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* 项目管理 */}
-        <TabsContent value="items" className="space-y-4">
-          {currentTask ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>添加新项目</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">项目ID</label>
-                      <Input
-                        value={newItemForm.item_id}
-                        onChange={(e) => setNewItemForm(prev => ({ ...prev, item_id: e.target.value }))}
-                        placeholder="输入项目ID"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">项目类型</label>
-                      <select
-                        value={newItemForm.item_type}
-                        onChange={(e) => setNewItemForm(prev => ({ ...prev, item_type: e.target.value }))}
-                        className="w-full p-2 border rounded-md"
-                        aria-label="选择项目类型"
-                      >
-                        <option value="survey_aspect">调研方面</option>
-                        <option value="dxa_direction">DXA研究方向</option>
-                        <option value="custom">自定义</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">项目标题</label>
-                    <Input
-                      value={newItemForm.title}
-                      onChange={(e) => setNewItemForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="输入项目标题"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">内容模板</label>
-                    <Textarea
-                      value={newItemForm.content_template}
-                      onChange={(e) => setNewItemForm(prev => ({ ...prev, content_template: e.target.value }))}
-                      placeholder="输入内容模板"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">元数据 (JSON格式)</label>
-                    <Textarea
-                      value={newItemForm.metadata}
-                      onChange={(e) => setNewItemForm(prev => ({ ...prev, metadata: e.target.value }))}
-                      placeholder='{"key": "value"}'
-                      rows={3}
-                    />
-                  </div>
-                  <Button onClick={addItem} className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    添加项目
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>项目列表 ({items.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {items.map((item) => (
-                      <div key={item.id} className="p-3 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">{item.title}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline">{item.type}</Badge>
-                              <span className="text-sm text-gray-500">#{item.section_number}</span>
-                              <span className="text-sm text-gray-500">{item.estimated_tokens} tokens</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {items.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">暂无项目</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-gray-500">请先选择一个任务</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {/* 生成控制 */}
-        <TabsContent value="generate" className="space-y-4">
-          {currentTask ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>生成控制</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={startStreamGeneration}
-                      disabled={isGenerating}
-                      className="flex-1"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      开始生成
-                    </Button>
-                    <Button
-                      onClick={stopGeneration}
-                      disabled={!isGenerating}
-                      variant="destructive"
-                    >
-                      <Square className="w-4 h-4 mr-2" />
-                      停止生成
-                    </Button>
-                  </div>
-                  
-                  {progress && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>进度: {progress.completed_items}/{progress.total_items}</span>
-                        <span>{progress.progress_percentage.toFixed(1)}%</span>
-                      </div>
-                      <Progress value={progress.progress_percentage} />
-                      <div className="text-sm text-gray-600">
-                        <p>状态: {progress.status}</p>
-                        <p>当前批次: {progress.current_batch}/{progress.total_batches}</p>
-                        {progress.current_item && <p>当前项目: {progress.current_item}</p>}
-                        {progress.error_message && (
-                          <p className="text-red-600">错误: {progress.error_message}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-gray-500">请先选择一个任务</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {/* 结果查看 */}
-        <TabsContent value="results" className="space-y-4">
-          {currentTask ? (
+    <div className="bg-gray-100 min-h-screen p-8 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">批量报告生成管理器</h1>
+          <p className="text-gray-600 mt-2">创建、监控和管理您的批量报告生成任务。</p>
+        </header>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="tasks">任务列表</TabsTrigger>
+            <TabsTrigger value="items" disabled={!currentTask}>项目配置</TabsTrigger>
+            <TabsTrigger value="generation" disabled={!currentTask}>生成与监控</TabsTrigger>
+            <TabsTrigger value="results" disabled={!currentTask}>结果预览</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks">
             <Card>
               <CardHeader>
-                <CardTitle>生成结果 ({results.length})</CardTitle>
+                <CardTitle>创建新任务</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="任务名称 (例如 dxa_report_batch_01)"
+                  value={newTaskForm.task_name}
+                  onChange={e => setNewTaskForm({ ...newTaskForm, task_name: e.target.value })}
+                />
+                <Input
+                  placeholder="报告名称 (例如 DXA骨密度分析报告)"
+                  value={newTaskForm.report_name}
+                  onChange={e => setNewTaskForm({ ...newTaskForm, report_name: e.target.value })}
+                />
+                <Button onClick={createTask}>创建任务</Button>
+                <Button variant="secondary" onClick={quickCreateDXATask}>快速创建DXA任务</Button>
+              </CardContent>
+            </Card>
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>所有任务</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {results.map((result) => (
-                    <div key={result.item_id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">{result.title}</h4>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={result.status === 'completed' ? 'default' : 'destructive'}>
-                            {result.status}
-                          </Badge>
-                          <span className="text-sm text-gray-500">{result.word_count} 字</span>
+                  {tasks.map(task => (
+                    <div key={task.task_name} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-bold">{task.task_name}</h3>
+                        <p className="text-sm text-gray-500">{task.report_name}</p>
+                        <Badge variant={task.status === '完成' ? 'default' : 'secondary'}>{task.status}</Badge>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-40">
+                          <Progress value={task.progress_percentage} />
+                          <span className="text-xs text-gray-500">{task.completed_items} / {task.total_items}</span>
                         </div>
+                        <Button size="sm" onClick={() => { setCurrentTask(task.task_name); setActiveTab('items'); }}>查看</Button>
+                        <Button size="sm" variant="destructive" onClick={() => deleteTask(task.task_name).catch(console.error)}>删除</Button>
                       </div>
-                      <div className="text-sm text-gray-600 mb-2">
-                        生成时间: {new Date(result.generated_time).toLocaleString()}
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                        {result.content.substring(0, 200)}...
-                      </div>
-                      {result.error_message && (
-                        <div className="text-red-600 text-sm mt-2">
-                          错误: {result.error_message}
-                        </div>
-                      )}
                     </div>
                   ))}
-                  {results.length === 0 && (
-                    <p className="text-center text-gray-500 py-8">暂无结果</p>
-                  )}
                 </div>
               </CardContent>
             </Card>
-          ) : (
+          </TabsContent>
+
+          <TabsContent value="items">
             <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-gray-500">请先选择一个任务</p>
+              <CardHeader>
+                <CardTitle>为任务 "{currentTask}" 添加项目</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="项目ID (唯一标识, 例如 patient_001)"
+                  value={newItemForm.item_id}
+                  onChange={e => setNewItemForm({ ...newItemForm, item_id: e.target.value })}
+                />
+                <Input
+                  placeholder="项目标题"
+                  value={newItemForm.title}
+                  onChange={e => setNewItemForm({ ...newItemForm, title: e.target.value })}
+                />
+                <Textarea
+                  placeholder="内容生成模板 (使用{key}引用元数据)"
+                  value={newItemForm.content_template}
+                  onChange={e => setNewItemForm({ ...newItemForm, content_template: e.target.value })}
+                />
+                <Textarea
+                  placeholder="元数据 (JSON格式)"
+                  value={newItemForm.metadata}
+                  onChange={e => setNewItemForm({ ...newItemForm, metadata: e.target.value })}
+                />
+                <Button onClick={addItem}>添加项目</Button>
               </CardContent>
             </Card>
-          )}
-        </TabsContent>
-        
-        {/* 生成日志 */}
-        <TabsContent value="logs" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>生成日志</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-black text-green-400 p-4 rounded-lg h-96 overflow-y-auto font-mono text-sm">
-                {streamLogs.map((log, index) => (
-                  <div key={index} className="mb-1">
-                    {log}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>项目列表</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {items.map(item => (
+                  <div key={item.id} className="p-2 border-b">
+                    <p><strong>ID:</strong> {item.id}</p>
+                    <p><strong>标题:</strong> {item.title}</p>
                   </div>
                 ))}
-                {streamLogs.length === 0 && (
-                  <div className="text-gray-500">等待生成日志...</div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="generation">
+            <Card>
+              <CardHeader>
+                <CardTitle>任务 "{currentTask}" 生成与监控</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 mb-4">
+                  <Button onClick={startStreamGeneration} disabled={isGenerating}>
+                    <Play className="mr-2 h-4 w-4" /> 开始生成
+                  </Button>
+                  <Button onClick={stopGeneration} disabled={!isGenerating} variant="destructive">
+                    <Square className="mr-2 h-4 w-4" /> 停止
+                  </Button>
+                  <Button onClick={() => loadTaskDetails(currentTask).catch(console.error)}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> 刷新状态
+                  </Button>
+                </div>
+                {progress && (
+                  <div className="space-y-2 mb-4 p-4 bg-gray-50 rounded-lg">
+                    <p>状态: <Badge>{progress.status}</Badge></p>
+                    <p>进度: {progress.completed_items} / {progress.total_items} (批次 {progress.current_batch}/{progress.total_batches})</p>
+                    <Progress value={progress.progress_percentage} />
+                    <p>当前处理: {progress.current_item ?? 'N/A'}</p>
+                    {progress.error_message && <p className="text-red-500">错误: {progress.error_message}</p>}
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <div className="bg-black text-white font-mono text-sm p-4 rounded-lg h-80 overflow-y-auto">
+                  {streamLogs.map((log, index) => (
+                    <p key={index}>{log}</p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="results">
+            <Card>
+              <CardHeader>
+                <CardTitle>任务 "{currentTask}" 生成结果</CardTitle>
+                <Button onClick={() => downloadReport(currentTask).catch(console.error)}>
+                  <Download className="mr-2 h-4 w-4" /> 下载完整报告
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {results.map(result => (
+                  <Card key={result.item_id}>
+                    <CardHeader>
+                      <CardTitle className="flex justify-between items-center">
+                        <span>{result.title}</span>
+                        <Badge variant={result.status === '成功' ? 'default' : 'destructive'}>{result.status}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="bg-gray-100 p-2 rounded whitespace-pre-wrap">{result.content}</pre>
+                      {result.error_message && <p className="text-red-500 mt-2">错误: {result.error_message}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

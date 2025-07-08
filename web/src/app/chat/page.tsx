@@ -3,9 +3,7 @@
 
 "use client";
 
-import { GithubOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 
