@@ -1,9 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import Link from "next/link";
 import Image from "next/image";
-import { useMemo } from "react";
 
 import { Jumbotron } from "./landing/components/jumbotron";
 import { Ray } from "./landing/components/ray";
@@ -56,7 +54,6 @@ function Header() {
 }
 
 function Footer() {
-  const year = useMemo(() => new Date().getFullYear(), []);
   return (
     <footer className="container mt-32 flex flex-col items-center justify-center">
       <hr className="from-border/0 via-border/70 to-border/0 m-0 h-px w-full border-none bg-gradient-to-r dark:via-gray-600/70" />
