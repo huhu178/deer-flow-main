@@ -3,8 +3,8 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { Download, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
+import { Download, FileText, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Progress } from "~/components/ui/progress";
@@ -39,63 +39,31 @@ interface LargeReportManagerProps {
   onSectionSaved?: (section: ReportSection) => void;
   onReportCompleted?: (stats: ReportStats) => void;
   autoSave?: boolean;
-  chunkSize?: number;
 }
 
-export function LargeReportManager({
+export interface LargeReportManagerRef {
+  addSection: (title: string, content: string, sectionNumber?: number) => void;
+  updateCurrentContent: (content: string) => void;
+}
+
+export const LargeReportManager = forwardRef<LargeReportManagerRef, LargeReportManagerProps>(({
   className,
   reportName = `report_${Date.now()}`,
   onSectionSaved,
   onReportCompleted,
   autoSave = true,
-  chunkSize = 8000,
-}: LargeReportManagerProps) {
+}, ref) => {
   const [sections, setSections] = useState<ReportSection[]>([]);
   const [currentContent, setCurrentContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [reportStats, setReportStats] = useState<ReportStats | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const scrollRef = useRef<ScrollContainerRef>(null);
-
-  /**
-   * 添加新的报告章节
-   */
-  const addSection = useCallback((title: string, content: string, sectionNumber?: number) => {
-    const newSection: ReportSection = {
-      number: sectionNumber || sections.length + 1,
-      title,
-      content,
-      saved: false,
-    };
-
-    setSections(prev => [...prev, newSection]);
-
-    // 如果启用自动保存，保存章节到后端
-    if (autoSave) {
-      saveSectionToBackend(newSection);
-    }
-
-    // 触发回调
-    onSectionSaved?.(newSection);
-  }, [sections.length, autoSave, onSectionSaved]);
-
-  /**
-   * 更新当前正在生成的内容
-   */
-  const updateCurrentContent = useCallback((content: string) => {
-    setCurrentContent(content);
-    
-    // 自动滚动到底部
-    if (scrollRef.current) {
-      scrollRef.current.scrollToBottom();
-    }
-  }, []);
 
   /**
    * 保存章节到后端
    */
-  const saveSectionToBackend = async (section: ReportSection) => {
+  const saveSectionToBackend = useCallback(async (section: ReportSection) => {
     try {
       const response = await fetch('/api/report/section/save', {
         method: 'POST',
@@ -118,14 +86,53 @@ export function LargeReportManager({
         // 更新章节状态
         setSections(prev => prev.map(s => 
           s.number === section.number 
-            ? { ...s, saved: true, path: result.section_path }
+            ? { ...s, saved: true, path: result.section_path as string }
             : s
         ));
       }
     } catch (error) {
       console.error('保存章节失败:', error);
     }
-  };
+  }, [reportName]);
+
+  /**
+   * 添加新的报告章节
+   */
+  const addSection = useCallback((title: string, content: string, sectionNumber?: number) => {
+    const newSection: ReportSection = {
+      number: sectionNumber ?? sections.length + 1,
+      title,
+      content,
+      saved: false,
+    };
+
+    setSections(prev => [...prev, newSection]);
+
+    // 如果启用自动保存，保存章节到后端
+    if (autoSave) {
+      void saveSectionToBackend(newSection);
+    }
+
+    // 触发回调
+    onSectionSaved?.(newSection);
+  }, [sections.length, autoSave, onSectionSaved, saveSectionToBackend]);
+
+  /**
+   * 更新当前正在生成的内容
+   */
+  const updateCurrentContent = useCallback((content: string) => {
+    setCurrentContent(content);
+    
+    // 自动滚动到底部
+    if (scrollRef.current) {
+      scrollRef.current.scrollToBottom();
+    }
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    addSection,
+    updateCurrentContent,
+  }));
 
   /**
    * 合并并下载完整报告
@@ -158,7 +165,6 @@ export function LargeReportManager({
         if (downloadResponse.ok) {
           const blob = await downloadResponse.blob();
           const url = window.URL.createObjectURL(blob);
-          setDownloadUrl(url);
           
           // 自动下载
           const a = document.createElement('a');
@@ -188,15 +194,15 @@ export function LargeReportManager({
   /**
    * 计算总进度
    */
-  const calculateProgress = () => {
+  const calculateProgress = useCallback(() => {
     if (sections.length === 0) return 0;
     const savedCount = sections.filter(s => s.saved).length;
     return Math.round((savedCount / sections.length) * 100);
-  };
+  }, [sections]);
 
   useEffect(() => {
     setProgress(calculateProgress());
-  }, [sections]);
+  }, [sections, calculateProgress]);
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
@@ -324,74 +330,96 @@ export function LargeReportManager({
       </Card>
     </div>
   );
-}
+});
+
+LargeReportManager.displayName = "LargeReportManager";
 
 /**
  * 大型报告生成钩子
  * 提供报告生成的状态管理和API调用
  */
 export function useLargeReportGenerator() {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [reportManager, setReportManager] = useState<any>(null);
+  const [sections, setSections] = useState<ReportSection[]>([]);
+  const [currentContent, setCurrentContent] = useState("");
+  const [, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [reportStats, setReportStats] = useState<ReportStats | null>(null);
+  const [, setDownloadUrl] = useState<string | null>(null);
+  const managerRef = useRef<LargeReportManagerRef>(null);
+
+  const addSection = useCallback((title: string, content: string, sectionNumber?: number) => {
+    managerRef.current?.addSection(title, content, sectionNumber);
+  }, []);
+
+  const updateCurrentContent = useCallback((content: string) => {
+    managerRef.current?.updateCurrentContent(content);
+  }, []);
 
   /**
-   * 开始生成大型报告
+   * 流式生成报告
+   * @param {string} url - 流式API的URL
+   * @param {Record<string, unknown>} body - 请求体
+   * @param {function} onUpdate - 每个数据块的回调
+   * @param {function} onComplete - 完成时的回调
    */
-  const startGeneration = useCallback(async (
-    messages: any[],
-    options: {
-      reportName?: string;
-      chunkSize?: number;
-      autoSave?: boolean;
-      threadId?: string;
-    } = {}
+  const stream = async (
+    url: string,
+    body: Record<string, unknown>,
+    onUpdate: (chunk: string) => void,
+    onComplete: (fullText: string) => void,
   ) => {
-    setIsGenerating(true);
-    
     try {
-      const response = await fetch('/api/chat/stream/large', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          messages,
-          thread_id: options.threadId || "__default__",
-          report_name: options.reportName || `report_${Date.now()}`,
-          chunk_size: options.chunkSize || 8000,
-          auto_save_sections: options.autoSave !== false,
-          base_dir: "./outputs/reports",
-          max_plan_iterations: 1,
-          max_step_num: 3,
-          max_search_results: 3,
-          auto_accepted_plan: true,
-          enable_background_investigation: true,
-        }),
+        body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        throw new Error('生成报告失败');
+      if (!response.body) {
+        throw new Error("没有响应体");
       }
 
-      return response;
-    } catch (error) {
-      setIsGenerating(false);
-      throw error;
-    }
-  }, []);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
 
-  /**
-   * 停止生成
-   */
-  const stopGeneration = useCallback(() => {
-    setIsGenerating(false);
-  }, []);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        onUpdate(chunk);
+      }
+
+      onComplete(fullText);
+    } catch (error) {
+      console.error("流式请求失败:", error);
+    }
+  };
+
+  const LargeReportManagerComponent = (
+    <LargeReportManager
+      ref={managerRef}
+      reportName={`generated_report_${Date.now()}`}
+      onSectionSaved={(section) => {
+        setSections(prev => [...prev, section]);
+      }}
+      onReportCompleted={(stats) => {
+        setReportStats(stats);
+      }}
+    />
+  );
 
   return {
-    isGenerating,
-    startGeneration,
-    stopGeneration,
-    reportManager,
-    setReportManager,
+    sections,
+    currentContent,
+    progress,
+    reportStats,
+    addSection,
+    updateCurrentContent,
+    stream,
+    LargeReportManagerComponent,
   };
 } 

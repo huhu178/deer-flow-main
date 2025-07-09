@@ -1,533 +1,568 @@
-'use client';
+"use client";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  CreditCard,
+  File,
+  Home,
+  LineChart,
+  ListFilter,
+  MoreVertical,
+  Package,
+  Package2,
+  PanelLeft,
+  PlusCircle,
+  Search,
+  Settings,
+  ShoppingCart,
+  Truck,
+  Users2,
+} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Play, 
-  Square, 
-  Download, 
-  Plus, 
-  Trash2, 
-  RefreshCw,
-  Eye,
-  Edit
-} from 'lucide-react';
+import { Badge } from "~/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "~/components/ui/breadcrumb";
+import { Button } from "~/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "~/components/ui/dropdown-menu";
+import { Input } from "~/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+} from "~/components/ui/pagination";
+import { Progress } from "~/components/ui/progress";
+import { Separator } from "~/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "~/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
-import { Badge } from '~/components/ui/badge';
-import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Input } from '~/components/ui/input';
-import { Progress } from '~/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { Textarea } from '~/components/ui/textarea';
-
+// 假设的API响应类型
 interface BatchTask {
-  task_name: string;
-  report_name: string;
-  total_items: number;
-  completed_items: number;
-  status: string;
-  progress_percentage: number;
-}
-
-interface BatchItem {
   id: string;
-  type: string;
-  title: string;
-  content_template: string;
-  metadata: Record<string, unknown>;
-  section_number: number;
-  estimated_tokens: number;
+  name: string;
+  status: "active" | "draft" | "archived" | "processing" | "completed";
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  reportCount: number;
+  resultSize: string;
 }
 
-interface BatchProgress {
-  total_items: number;
-  completed_items: number;
-  current_batch: number;
-  total_batches: number;
-  current_item: string | null;
-  status: string;
-  start_time: string;
-  progress_percentage: number;
-  error_message?: string;
+// 模拟的API函数
+async function fetchBatchTasks(
+  page: number,
+  limit: number,
+): Promise<{ tasks: BatchTask[]; total: number }> {
+  console.log(`Fetching page ${page} with limit ${limit}`);
+  // 模拟数据
+  const allTasks: BatchTask[] = Array.from({ length: 53 }, (_, i) => ({
+    id: `task_${i + 1}`,
+    name: `多中心临床试验数据分析 - 批次 ${i + 1}`,
+    status: (
+      [
+        "active",
+        "processing",
+        "completed",
+        "draft",
+        "archived",
+      ] as const
+    )[i % 5],
+    progress: Math.floor(Math.random() * 101),
+    createdAt: new Date(
+      Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    updatedAt: new Date(
+      Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    reportCount: Math.floor(Math.random() * 20) + 1,
+    resultSize: `${(Math.random() * 50).toFixed(2)} MB`,
+  }));
+
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  const tasks = allTasks.slice(start, end);
+
+  return Promise.resolve({ tasks, total: allTasks.length });
 }
 
-interface BatchResult {
-  batch_id: string;
-  item_id: string;
-  title: string;
-  content: string;
-  section_number: number;
-  word_count: number;
-  token_count: number;
-  generated_time: string;
-  status: string;
-  error_message?: string;
-}
-
-const BatchManagerPage: React.FC = () => {
-  // 状态管理
+export default function BatchManagerPage() {
   const [tasks, setTasks] = useState<BatchTask[]>([]);
-  const [currentTask, setCurrentTask] = useState<string>('');
-  const [items, setItems] = useState<BatchItem[]>([]);
-  const [progress, setProgress] = useState<BatchProgress | null>(null);
-  const [results, setResults] = useState<BatchResult[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState('tasks');
-  
-  // 表单状态
-  const [newTaskForm, setNewTaskForm] = useState({
-    task_name: '',
-    report_name: '',
-    batch_size: 5,
-    max_tokens_per_item: 4000
-  });
-  
-  const [newItemForm, setNewItemForm] = useState({
-    item_id: '',
-    item_type: 'survey_aspect',
-    title: '',
-    content_template: '',
-    metadata: '{}',
-    estimated_tokens: 0
-  });
-  
-  // 流式生成相关
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const [streamLogs, setStreamLogs] = useState<string[]>([]);
-  
-  // API 基础URL
-  const API_BASE = '/api/batch';
-  
-  // 加载任务列表
-  const loadTasks = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/list`);
-      const data = await response.json();
-      if (data.success) {
-        setTasks(data.tasks);
-      }
-    } catch (error) {
-      console.error('加载任务失败:', error);
-    }
-  };
-  
-  // 加载任务详情
-  const loadTaskDetails = async (taskName: string) => {
-    try {
-      // 加载项目列表
-      const itemsResponse = await fetch(`${API_BASE}/items/${taskName}`);
-      const itemsData = await itemsResponse.json();
-      if (itemsData.success) {
-        setItems(itemsData.items);
-      }
-      
-      // 加载进度
-      const progressResponse = await fetch(`${API_BASE}/progress/${taskName}`);
-      const progressData = await progressResponse.json();
-      if (progressData.success) {
-        setProgress(progressData.progress);
-      }
-      
-      // 加载结果
-      const resultsResponse = await fetch(`${API_BASE}/results/${taskName}`);
-      const resultsData = await resultsResponse.json();
-      if (resultsData.success) {
-        setResults(resultsData.results);
-      }
-    } catch (error) {
-      console.error('加载任务详情失败:', error);
-    }
-  };
-  
-  // 创建新任务
-  const createTask = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/create-task`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTaskForm)
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setNewTaskForm({
-          task_name: '',
-          report_name: '',
-          batch_size: 5,
-          max_tokens_per_item: 4000
-        });
-        await loadTasks();
-        setCurrentTask(data.task_name);
-        setActiveTab('items');
-      } else {
-        alert(`创建任务失败: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('创建任务失败:', error);
-      alert('创建任务失败');
-    }
-  };
-  
-  // 添加项目
-  const addItem = async () => {
-    if (!currentTask) {
-      alert('请先选择任务');
-      return;
-    }
-    
-    try {
-      let metadata = {};
-      try {
-        metadata = JSON.parse(newItemForm.metadata);
-      } catch {
-        alert('元数据格式错误，请输入有效的JSON');
-        return;
-      }
-      
-      const response = await fetch(`${API_BASE}/add-item`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          task_name: currentTask,
-          ...newItemForm,
-          metadata
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setNewItemForm({
-          item_id: '',
-          item_type: 'survey_aspect',
-          title: '',
-          content_template: '',
-          metadata: '{}',
-          estimated_tokens: 0
-        });
-        await loadTaskDetails(currentTask);
-      } else {
-        alert(`添加项目失败: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('添加项目失败:', error);
-      alert('添加项目失败');
-    }
-  };
-  
-  // 开始流式生成
-  const startStreamGeneration = () => {
-    if (!currentTask) {
-      alert('请先选择任务');
-      return;
-    }
-    
-    setIsGenerating(true);
-    setStreamLogs([]);
-    
-    // 关闭现有连接
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-    
-    // 创建新的EventSource连接
-    const eventSource = new EventSource(`${API_BASE}/generate-stream/${currentTask}`);
-    eventSourceRef.current = eventSource;
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as { type: string; data: unknown };
-        
-        // 添加日志
-        const timestamp = new Date().toLocaleTimeString();
-        setStreamLogs(prev => [...prev, `[${timestamp}] ${data.type}: ${JSON.stringify(data.data)}`]);
-        
-        // 处理不同类型的事件
-        switch (data.type) {
-          case 'progress':
-            setProgress(data.data as BatchProgress);
-            break;
-          case 'result':
-            setResults(prev => [...prev, data.data as BatchResult]);
-            break;
-          case 'error':
-            setProgress(prev => prev ? { ...prev, error_message: data.data as string } : null);
-            break;
-          case 'complete':
-            eventSource.close();
-            setIsGenerating(false);
-            break;
-        }
-      } catch (error) {
-        console.error('处理流式数据失败:', error);
-      }
-    };
-    
-    eventSource.onerror = () => {
-      setStreamLogs(prev => [...prev, '与服务器断开连接，尝试重新连接...']);
-      setIsGenerating(false);
-      // EventSource 会自动重连，这里只更新UI状态
-    };
-  };
-  
-  // 停止生成
-  const stopGeneration = async () => {
-    if (!currentTask) {
-      alert('没有正在进行的任务');
-      return;
-    }
-    
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-    
-    try {
-      await fetch(`${API_BASE}/stop/${currentTask}`, { method: 'POST' });
-      setIsGenerating(false);
-      setStreamLogs(prev => [...prev, '手动停止任务。']);
-    } catch (error) {
-      console.error('停止任务失败:', error);
-    }
-  };
-  
-  // 下载报告
-  const downloadReport = async (taskName: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/download/${taskName}`);
-      if (!response.ok) {
-        throw new Error('报告下载失败');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${taskName}_report.md`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (error) {
-      console.error('下载报告失败:', error);
-      alert('下载报告失败');
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const itemsPerPage = 10;
 
-  // 删除任务
-  const deleteTask = async (taskName: string) => {
-    if (window.confirm(`确定要删除任务 "${taskName}" 吗？`)) {
-      try {
-        const response = await fetch(`${API_BASE}/delete/${taskName}`, { method: 'POST' });
-        const data = await response.json();
-        if (data.success) {
-          await loadTasks();
-        } else {
-          alert(`删除失败: ${data.message}`);
-        }
-      } catch (error) {
-        console.error('删除任务失败:', error);
-      }
-    }
-  };
-
-  // 快速创建DXA任务
-  const quickCreateDXATask = async () => {
+  const loadTasks = useCallback(async (page: number) => {
+    setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/quick-create-dxa`, { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        await loadTasks();
-        setCurrentTask(data.task_name);
-        await loadTaskDetails(data.task_name);
-        setActiveTab('items');
-      } else {
-        alert('快速创建失败');
-      }
+      const { tasks: fetchedTasks, total } = await fetchBatchTasks(
+        page,
+        itemsPerPage,
+      );
+      setTasks(fetchedTasks);
+      setTotalPages(Math.ceil(total / itemsPerPage));
     } catch (error) {
-      console.error('快速创建失败:', error);
+      console.error("Failed to fetch tasks:", error);
+      // 在这里可以添加错误处理逻辑，例如显示一个错误消息
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadTasks().catch(console.error);
   }, []);
-  
+
   useEffect(() => {
-    if (currentTask) {
-      loadTaskDetails(currentTask).catch(console.error);
+    void loadTasks(currentPage);
+  }, [currentPage, loadTasks]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
     }
-  }, [currentTask]);
+  };
+
+  const statusMap: Record<
+    BatchTask["status"],
+    { label: string; color: string }
+  > = useMemo(
+    () => ({
+      active: { label: "活跃", color: "bg-green-500" },
+      processing: { label: "处理中", color: "bg-blue-500 animate-pulse" },
+      completed: { label: "已完成", color: "bg-gray-700" },
+      draft: { label: "草稿", color: "bg-yellow-500" },
+      archived: { label: "已归档", color: "bg-gray-400" },
+    }),
+    [],
+  );
 
   return (
-    <div className="bg-gray-100 min-h-screen p-8 font-sans">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">批量报告生成管理器</h1>
-          <p className="text-gray-600 mt-2">创建、监控和管理您的批量报告生成任务。</p>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
+        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+          <a
+            href="#"
+            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+          >
+            <Package2 className="h-4 w-4 transition-all group-hover:scale-110" />
+            <span className="sr-only">Deer-Flow</span>
+          </a>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <Home className="h-5 w-5" />
+                  <span className="sr-only">主面板</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">主面板</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="sr-only">批量任务</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">批量任务</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <Package className="h-5 w-5" />
+                  <span className="sr-only">报告</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">报告</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <Users2 className="h-5 w-5" />
+                  <span className="sr-only">用户管理</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">用户管理</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <LineChart className="h-5 w-5" />
+                  <span className="sr-only">统计分析</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">统计分析</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </nav>
+        <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="sr-only">设置</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="right">设置</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </nav>
+      </aside>
+      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="outline" className="sm:hidden">
+                <PanelLeft className="h-5 w-5" />
+                <span className="sr-only">打开菜单</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="sm:max-w-xs">
+              <nav className="grid gap-6 text-lg font-medium">
+                <a
+                  href="#"
+                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                >
+                  <Package2 className="h-5 w-5 transition-all group-hover:scale-110" />
+                  <span className="sr-only">Deer-Flow</span>
+                </a>
+                <a
+                  href="#"
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Home className="h-5 w-5" />
+                  主面板
+                </a>
+                <a
+                  href="#"
+                  className="flex items-center gap-4 px-2.5 text-foreground"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  批量任务
+                </a>
+                <a
+                  href="#"
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Package className="h-5 w-5" />
+                  报告
+                </a>
+                <a
+                  href="#"
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Users2 className="h-5 w-5" />
+                  用户管理
+                </a>
+                <a
+                  href="#"
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <LineChart className="h-5 w-5" />
+                  统计分析
+                </a>
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <Breadcrumb className="hidden md:flex">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <a href="#">主面板</a>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <a href="#">批量任务</a>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>所有任务</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="relative ml-auto flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="搜索任务..."
+              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="overflow-hidden rounded-full"
+              >
+                <img
+                  src="https://github.com/shadcn.png"
+                  width={36}
+                  height={36}
+                  alt="Avatar"
+                  className="overflow-hidden rounded-full"
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>我的账户</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>设置</DropdownMenuItem>
+              <DropdownMenuItem>支持</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>退出登录</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="tasks">任务列表</TabsTrigger>
-            <TabsTrigger value="items" disabled={!currentTask}>项目配置</TabsTrigger>
-            <TabsTrigger value="generation" disabled={!currentTask}>生成与监控</TabsTrigger>
-            <TabsTrigger value="results" disabled={!currentTask}>结果预览</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="tasks">
-            <Card>
-              <CardHeader>
-                <CardTitle>创建新任务</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="任务名称 (例如 dxa_report_batch_01)"
-                  value={newTaskForm.task_name}
-                  onChange={e => setNewTaskForm({ ...newTaskForm, task_name: e.target.value })}
-                />
-                <Input
-                  placeholder="报告名称 (例如 DXA骨密度分析报告)"
-                  value={newTaskForm.report_name}
-                  onChange={e => setNewTaskForm({ ...newTaskForm, report_name: e.target.value })}
-                />
-                <Button onClick={createTask}>创建任务</Button>
-                <Button variant="secondary" onClick={quickCreateDXATask}>快速创建DXA任务</Button>
-              </CardContent>
-            </Card>
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>所有任务</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tasks.map(task => (
-                    <div key={task.task_name} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-bold">{task.task_name}</h3>
-                        <p className="text-sm text-gray-500">{task.report_name}</p>
-                        <Badge variant={task.status === '完成' ? 'default' : 'secondary'}>{task.status}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="w-40">
-                          <Progress value={task.progress_percentage} />
-                          <span className="text-xs text-gray-500">{task.completed_items} / {task.total_items}</span>
-                        </div>
-                        <Button size="sm" onClick={() => { setCurrentTask(task.task_name); setActiveTab('items'); }}>查看</Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteTask(task.task_name).catch(console.error)}>删除</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="items">
-            <Card>
-              <CardHeader>
-                <CardTitle>为任务 "{currentTask}" 添加项目</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="项目ID (唯一标识, 例如 patient_001)"
-                  value={newItemForm.item_id}
-                  onChange={e => setNewItemForm({ ...newItemForm, item_id: e.target.value })}
-                />
-                <Input
-                  placeholder="项目标题"
-                  value={newItemForm.title}
-                  onChange={e => setNewItemForm({ ...newItemForm, title: e.target.value })}
-                />
-                <Textarea
-                  placeholder="内容生成模板 (使用{key}引用元数据)"
-                  value={newItemForm.content_template}
-                  onChange={e => setNewItemForm({ ...newItemForm, content_template: e.target.value })}
-                />
-                <Textarea
-                  placeholder="元数据 (JSON格式)"
-                  value={newItemForm.metadata}
-                  onChange={e => setNewItemForm({ ...newItemForm, metadata: e.target.value })}
-                />
-                <Button onClick={addItem}>添加项目</Button>
-              </CardContent>
-            </Card>
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>项目列表</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {items.map(item => (
-                  <div key={item.id} className="p-2 border-b">
-                    <p><strong>ID:</strong> {item.id}</p>
-                    <p><strong>标题:</strong> {item.title}</p>
+        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>批量任务管理器</CardTitle>
+              <CardDescription>
+                管理和监控您的批量研究任务.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="all">
+                <div className="flex items-center">
+                  <TabsList>
+                    <TabsTrigger value="all">全部</TabsTrigger>
+                    <TabsTrigger value="active">活跃</TabsTrigger>
+                    <TabsTrigger value="draft">草稿</TabsTrigger>
+                    <TabsTrigger value="archived" className="hidden sm:flex">
+                      已归档
+                    </TabsTrigger>
+                  </TabsList>
+                  <div className="ml-auto flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1"
+                        >
+                          <ListFilter className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            筛选
+                          </span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>按状态筛选</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem checked>
+                          活跃
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem>草稿</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem>
+                          已归档
+                        </DropdownMenuCheckboxItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button size="sm" variant="outline" className="h-8 gap-1">
+                      <File className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        导出
+                      </span>
+                    </Button>
+                    <Button size="sm" className="h-8 gap-1">
+                      <PlusCircle className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        创建新任务
+                      </span>
+                    </Button>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="generation">
-            <Card>
-              <CardHeader>
-                <CardTitle>任务 "{currentTask}" 生成与监控</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 mb-4">
-                  <Button onClick={startStreamGeneration} disabled={isGenerating}>
-                    <Play className="mr-2 h-4 w-4" /> 开始生成
-                  </Button>
-                  <Button onClick={stopGeneration} disabled={!isGenerating} variant="destructive">
-                    <Square className="mr-2 h-4 w-4" /> 停止
-                  </Button>
-                  <Button onClick={() => loadTaskDetails(currentTask).catch(console.error)}>
-                    <RefreshCw className="mr-2 h-4 w-4" /> 刷新状态
-                  </Button>
                 </div>
-                {progress && (
-                  <div className="space-y-2 mb-4 p-4 bg-gray-50 rounded-lg">
-                    <p>状态: <Badge>{progress.status}</Badge></p>
-                    <p>进度: {progress.completed_items} / {progress.total_items} (批次 {progress.current_batch}/{progress.total_batches})</p>
-                    <Progress value={progress.progress_percentage} />
-                    <p>当前处理: {progress.current_item ?? 'N/A'}</p>
-                    {progress.error_message && <p className="text-red-500">错误: {progress.error_message}</p>}
-                  </div>
-                )}
-                <div className="bg-black text-white font-mono text-sm p-4 rounded-lg h-80 overflow-y-auto">
-                  {streamLogs.map((log, index) => (
-                    <p key={index}>{log}</p>
-                  ))}
+                <TabsContent value="all">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[280px]">任务名称</TableHead>
+                        <TableHead className="w-[120px]">状态</TableHead>
+                        <TableHead className="w-[120px]">进度</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          报告数
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          结果大小
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          创建时间
+                        </TableHead>
+                        <TableHead>
+                          <span className="sr-only">操作</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">
+                            正在加载任务...
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!isLoading &&
+                        tasks.map((task) => (
+                          <TableRow key={task.id}>
+                            <TableCell className="font-medium">
+                              {task.name}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={`border-transparent text-white ${
+                                  statusMap[task.status].color
+                                }`}
+                              >
+                                {statusMap[task.status].label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Progress
+                                value={task.progress}
+                                aria-label={`${task.progress}% complete`}
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                {task.progress}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {task.reportCount}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {task.resultSize}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {new Date(task.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    aria-haspopup="true"
+                                    size="icon"
+                                    variant="ghost"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">切换菜单</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                  <DropdownMenuItem>
+                                    查看详情
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>编辑任务</DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    复制任务ID
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600">
+                                    删除任务
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+            <CardFooter>
+              <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+                <div>
+                  第 {currentPage} 页，共 {totalPages} 页
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="results">
-            <Card>
-              <CardHeader>
-                <CardTitle>任务 "{currentTask}" 生成结果</CardTitle>
-                <Button onClick={() => downloadReport(currentTask).catch(console.error)}>
-                  <Download className="mr-2 h-4 w-4" /> 下载完整报告
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {results.map(result => (
-                  <Card key={result.item_id}>
-                    <CardHeader>
-                      <CardTitle className="flex justify-between items-center">
-                        <span>{result.title}</span>
-                        <Badge variant={result.status === '成功' ? 'default' : 'destructive'}>{result.status}</Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="bg-gray-100 p-2 rounded whitespace-pre-wrap">{result.content}</pre>
-                      {result.error_message && <p className="text-red-500 mt-2">错误: {result.error_message}</p>}
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        上一页
+                      </Button>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                      >
+                        下一页
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </CardFooter>
+          </Card>
+        </main>
       </div>
     </div>
   );
-};
-
-export default BatchManagerPage; 
+}

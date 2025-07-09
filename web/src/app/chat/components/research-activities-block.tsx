@@ -160,14 +160,11 @@ const getSearchResults = (
       if (results && typeof results === "object") {
         const possibleKeys = ["results", "items", "data", "pages", "images"];
         for (const key of possibleKeys) {
-          const potentialArray = (results as any)[key];
+          const potentialArray = (results as Record<string, unknown>)[key];
           if (Array.isArray(potentialArray)) {
             results = potentialArray;
             break;
           }
-        }
-        if (!Array.isArray(results)) {
-          results = [results as SearchResult];
         }
       } else {
         results = [];
@@ -198,7 +195,7 @@ const getSearchResults = (
       });
     }
 
-    return results as SearchResult[];
+    return results;
   } catch (error) {
     console.error("An error occurred while processing search results:", error);
     return [];

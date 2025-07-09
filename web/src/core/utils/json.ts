@@ -11,7 +11,7 @@ export function parseJSON<T>(json: string | null | undefined, fallback: T) {
   }
   try {
     return JSON.parse(json) as T;
-  } catch (e) {
+  } catch {
     // 初始解析失败，尝试修复
     try {
       // 1. 尝试移除尾随逗号 (最常见的问题)

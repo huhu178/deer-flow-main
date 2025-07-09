@@ -56,9 +56,9 @@ interface SpeechRecognitionAlternative {
   confidence: number;
 }
 
-declare var SpeechRecognition: {
+declare const SpeechRecognition: {
   prototype: SpeechRecognition;
-  new(): SpeechRecognition;
+  new (): SpeechRecognition;
 };
 
 /**
@@ -248,70 +248,63 @@ export function SimpleMedicalInput({
       const source = context.createMediaStreamSource(mediaStreamRef.current);
       const processor = context.createScriptProcessor(2048, 1, 1);
 
-      source.connect(processor);
-      processor.connect(context.destination);
-
       processor.onaudioprocess = (e: AudioProcessingEvent) => {
-        if (
-          isRecording &&
-          wsRef.current?.readyState === WebSocket.OPEN
-        ) {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
           const inputData = e.inputBuffer.getChannelData(0);
-          const pcmData = new Int16Array(inputData.length);
-          for (let i = 0; i < inputData.length; i++) {
-            const s = Math.max(-1, Math.min(1, inputData[i] ?? 0));
-            pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-          }
-          wsRef.current.send(pcmData.buffer);
+          wsRef.current.send(inputData.buffer);
         }
       };
+
+      source.connect(processor);
+      processor.connect(context.destination);
       return true;
-    } catch (error) {
-      setVoiceStatus("FunASR初始化失败，使用浏览器语音识别");
-      setVoiceError("无法访问麦克风或连接语音服务");
+    } catch (err) {
+      console.error("FunASR初始化失败:", err);
+      setVoiceStatus("FunASR初始化失败，请检查服务是否可用");
+      setVoiceError("FunASR初始化失败");
       setUseBrowserASR(true);
       return initBrowserASR();
     }
-  }, [isRecording, useBrowserASR, initBrowserASR]);
+  }, [initBrowserASR, useBrowserASR]);
 
   const handleVoiceClick = useCallback(async () => {
     if (!isRecording) {
+      setVoiceError(null);
       try {
-        if (useBrowserASR && recognitionRef.current) {
-          recognitionRef.current.start();
-        } else {
-          if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            const initialized = await initFunASR();
-            if (!initialized) return;
+        if (useBrowserASR || !("mediaDevices" in navigator)) {
+          if (initBrowserASR()) {
+            recognitionRef.current?.start();
           }
-          setIsRecording(true);
-          setVoiceStatus("正在录音中... 点击停止");
+        } else {
+          const initialized = await initFunASR();
+          if (initialized) {
+            setIsRecording(true);
+            setVoiceStatus("正在录音... 点击停止");
+          }
         }
       } catch (error) {
+        console.error("Failed to start voice recording:", error);
         setVoiceStatus("开始录音失败");
-        setVoiceError("无法开始录音");
-        setIsRecording(false);
+        setVoiceError("无法启动录音功能");
       }
     } else {
-      try {
-        if (useBrowserASR && recognitionRef.current) {
-          recognitionRef.current.stop();
-        } else {
-          setIsRecording(false);
-          setVoiceStatus("录音结束，等待识别结果...");
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            const endFrame = { is_speaking: false };
-            wsRef.current.send(JSON.stringify(endFrame));
-          }
+      if (useBrowserASR) {
+        recognitionRef.current?.stop();
+      } else {
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const endFrame = { is_speaking: false };
+          wsRef.current.send(JSON.stringify(endFrame));
         }
-      } catch (error) {
-        setVoiceStatus("停止录音失败");
-        setVoiceError("停止录音时出错");
+        wsRef.current?.close();
       }
+      setIsRecording(false);
+      setVoiceStatus("点击开始语音输入");
     }
-  }, [isRecording, initFunASR, useBrowserASR]);
+  }, [isRecording, useBrowserASR, initBrowserASR, initFunASR]);
 
   useEffect(() => {
+    // 默认使用浏览器ASR
     initBrowserASR();
     setUseBrowserASR(true);
   }, [initBrowserASR]);
@@ -342,15 +335,17 @@ export function SimpleMedicalInput({
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".txt,.pdf,.doc,.docx,.csv,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
-        onChange={handleFileUpload}
-        className="hidden"
-        aria-label="上传文件"
-      />
+      <form>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".txt,.pdf,.doc,.docx,.csv,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+          onChange={handleFileUpload}
+          className="hidden"
+          aria-label="上传文件"
+        />
+      </form>
 
       <div className="flex-1 relative">
         {uploadedFiles.length > 0 && (
@@ -379,7 +374,9 @@ export function SimpleMedicalInput({
         <Textarea
           ref={textareaRef}
           placeholder={
-            responding ? "AI正在分析中..." : "请描述您的研究需求或数据分析要求..."
+            responding
+              ? "AI正在分析中..."
+              : "请描述您的研究需求或数据分析要求..."
           }
           className="w-full p-4 pr-32 border border-blue-200 rounded-lg resize-none h-16 focus:outline-none focus:ring-2 focus:ring-blue-500 text-2xl leading-relaxed scrollbar-hide text-gray-800 bg-white placeholder-gray-500"
           style={{
@@ -431,7 +428,7 @@ export function SimpleMedicalInput({
           </Button>
         </div>
 
-        {(voiceError ?? voiceStatus !== "点击开始语音输入") && (
+        {(voiceError ?? voiceStatus) !== "点击开始语音输入" && (
           <div className="absolute right-2 top-20 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow-sm border">
             {voiceError ? (
               <span className="text-orange-600">
@@ -456,4 +453,4 @@ export function SimpleMedicalInput({
       </Button>
     </div>
   );
-} 
+}

@@ -1,13 +1,23 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
+import { Bot, FileCode, Github, LifeBuoy, Settings, User } from "lucide-react";
+import React from "react";
+
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "~/components/ui/dropdown-menu";
+
 /**
  * 头部导航组件
  * @description 包含平台标题和用户信息的头部导航栏
  */
-
-import { Button } from "~/components/ui/button";
-import { Settings, User } from "lucide-react";
 
 export function Header() {
   return (

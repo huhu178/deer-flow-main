@@ -7,6 +7,7 @@
  */
 
 import type { Metadata } from "next";
+
 import { MedicalStatisticsInterface } from "./components/medical-statistics-interface";
 
 export const metadata: Metadata = {

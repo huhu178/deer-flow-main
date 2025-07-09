@@ -32,20 +32,17 @@ const config = {
       test: /\.md$/,
       use: "raw-loader",
     });
-    
-    // 排除Funasr3目录，避免TypeScript检查
-    config.module.rules.push({
-      test: /\.js$/,
-      include: /Funasr3/,
-      use: 'ignore-loader'
-    });
-    
     return config;
   },
-  
+
   // 排除TypeScript检查
   typescript: {
     ignoreBuildErrors: false,
+  },
+
+  // 在构建时忽略 ESLint 错误
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

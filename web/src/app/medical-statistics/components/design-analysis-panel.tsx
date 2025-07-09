@@ -6,10 +6,19 @@
  * @description 左侧面板，包含各种流行病学研究设计的智能体选项
  */
 
-import { useState } from "react";
+import {
+  Lightbulb,
+  FileText,
+  BarChart,
+  Settings,
+  Bot,
+  Search,
+  Layers,
+  Zap,
+} from "lucide-react";
+import React from "react";
+
 import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
-import { Search, Layers, Zap, FileText } from "lucide-react";
 import { sendMessage } from "~/core/store";
 
 interface AnalysisAgentProps {

@@ -3,18 +3,19 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
+import Image from "next/image";
+import React, { useState } from "react";
+
+import { MedicalChatInterface } from "~/app/medical-statistics/components/medical-chat-interface";
+import { DatabasePanel } from "./database-panel";
+import { DesignAnalysisPanel } from "./design-analysis-panel";
+import { Header } from "./header";
+
 /**
  * 医学统计分析界面组件
  * @description 主界面组件，包含三栏布局：设计分析智能体、聊天界面、数据库智能体
  * 集成现有的聊天接口和状态管理系统
  */
-
-import { useState } from "react";
-import Image from "next/image";
-import { useStore, sendMessage } from "~/core/store";
-import { DesignAnalysisPanel } from "./design-analysis-panel";
-import { MedicalChatInterface } from "./medical-chat-interface";
-import { DatabasePanel } from "./database-panel";
 
 export function MedicalStatisticsInterface() {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);

@@ -6,7 +6,7 @@ import { Progress } from '~/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { ScrollArea } from '~/components/ui/scroll-area'
-import { Download, Play, Pause, Square, RefreshCw } from 'lucide-react'
+import { Download, Play, RefreshCw, Square } from 'lucide-react'
 
 interface ReportSection {
   direction_number: number
@@ -17,9 +17,16 @@ interface ReportSection {
   percentage: number
 }
 
+interface ReportStats {
+  total_tokens: number;
+  total_words: number;
+  total_cost: number;
+  time_taken: number;
+}
+
 interface BatchReportViewerProps {
   onSectionGenerated?: (section: ReportSection) => void
-  onComplete?: (finalPath: string, stats: any) => void
+  onComplete?: (finalPath: string, stats: ReportStats) => void
   onError?: (error: string) => void
 }
 
@@ -29,14 +36,13 @@ export default function BatchReportViewer({
   onError
 }: BatchReportViewerProps) {
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
   const [sections, setSections] = useState<ReportSection[]>([])
   const [currentProgress, setCurrentProgress] = useState(0)
   const [totalSections, setTotalSections] = useState(20)
   const [reportName, setReportName] = useState('')
   const [mode, setMode] = useState<'all' | 'demo'>('demo')
   const [finalReportPath, setFinalReportPath] = useState('')
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<ReportStats | null>(null)
   const [error, setError] = useState('')
   
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -144,7 +150,6 @@ export default function BatchReportViewer({
       eventSourceRef.current = null
     }
     setIsGenerating(false)
-    setIsPaused(false)
   }
 
   // 下载完整报告
@@ -250,18 +255,36 @@ export default function BatchReportViewer({
 
           {/* 错误信息 */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-700 text-sm">❌ {error}</p>
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
+              错误: {error}
             </div>
           )}
 
           {/* 统计信息 */}
           {stats && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-green-700 text-sm">
-                ✅ 生成完成! 共 {stats.section_count} 个方向，总大小 {stats.total_size_kb} KB
-              </p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>报告统计</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <p className="text-sm text-gray-600">总Token数</p>
+                  <p className="text-2xl font-bold">{stats.total_tokens}</p>
+                </div>
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <p className="text-sm text-gray-600">总字数</p>
+                  <p className="text-2xl font-bold">{stats.total_words}</p>
+                </div>
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <p className="text-sm text-gray-600">预估费用</p>
+                  <p className="text-2xl font-bold">${stats.total_cost.toFixed(4)}</p>
+                </div>
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <p className="text-sm text-gray-600">总耗时</p>
+                  <p className="text-2xl font-bold">{stats.time_taken.toFixed(2)}s</p>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
@@ -312,10 +335,10 @@ export default function BatchReportViewer({
                 ))}
                 
                 {/* 生成中指示器 */}
-                {isGenerating && (
-                  <div className="flex items-center justify-center py-8">
+                {isGenerating && sections.length < totalSections && (
+                  <div className="flex items-center justify-center p-8 text-gray-500">
                     <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-                    <span className="text-gray-600">正在生成下一个研究方向...</span>
+                    <span>正在生成下一个研究方向...</span>
                   </div>
                 )}
               </div>

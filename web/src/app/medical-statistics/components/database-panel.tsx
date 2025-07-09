@@ -1,13 +1,17 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-/**
- * 数据库面板组件
- * @description 右侧面板，包含数据库连接和各种数据类型的分析功能
- */
+import { Database, FileUp, Filter, Search, Upload } from "lucide-react";
+import React from "react";
 
 import { Button } from "~/components/ui/button";
-import { Database } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { sendMessage } from "~/core/store";
 
 interface DataTypeCardProps {

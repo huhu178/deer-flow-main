@@ -1,8 +1,11 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
+"use client";
+
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import React from "react";
 import { FlickeringGrid } from "~/components/magicui/flickering-grid";
 import { Button } from "~/components/ui/button";
 
@@ -37,12 +40,12 @@ export function Jumbotron() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button className="text-lg px-8 py-6" size="lg" asChild>
             <Link href="/chat">
-              开始研究 <ChevronRight className="ml-2 h-5 w-5" />
+              开始研究 <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
           <Button className="text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700" size="lg" asChild>
             <Link href="/medical-statistics">
-              医学统计分析 <ChevronRight className="ml-2 h-5 w-5" />
+              医学统计分析 <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
         </div>
