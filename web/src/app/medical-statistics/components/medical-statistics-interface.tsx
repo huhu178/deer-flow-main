@@ -65,6 +65,7 @@ export function MedicalStatisticsInterface() {
             size="icon"
             className="absolute top-1/2 -translate-y-1/2 left-0 z-10 h-12 w-6 rounded-l-none bg-gray-200/50 hover:bg-gray-200"
             onClick={() => setLeftPanelVisible(!leftPanelVisible)}
+            title={leftPanelVisible ? "隐藏左侧面板" : "显示左侧面板"}
           >
             {leftPanelVisible ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
           </Button>
@@ -77,6 +78,7 @@ export function MedicalStatisticsInterface() {
             size="icon"
             className="absolute top-1/2 -translate-y-1/2 right-0 z-10 h-12 w-6 rounded-r-none bg-gray-200/50 hover:bg-gray-200"
             onClick={() => setRightPanelVisible(!rightPanelVisible)}
+            title={rightPanelVisible ? "隐藏右侧面板" : "显示右侧面板"}
           >
             {rightPanelVisible ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </Button>

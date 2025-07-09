@@ -5,9 +5,9 @@ import { FileText, Mic, Send, Upload, X, Settings, Server } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
-import { Input } from "~/components/ui/input";
 
 // 语音识别类型声明
 declare global {
@@ -75,7 +75,7 @@ export function SimpleMedicalInput({
 }: {
   className?: string;
   responding?: boolean;
-  onSend?: (message: string) => void;
+  onSend: (message: string) => void;
 }) {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -93,15 +93,15 @@ export function SimpleMedicalInput({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // --- Backend URL Configuration Logic ---
-  const [backendUrl, setBackendUrl] = React.useState("");
-  const [showSettings, setShowSettings] = React.useState(false);
+  const [backendUrl, setBackendUrl] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const savedUrl = localStorage.getItem("backendUrl");
     if (savedUrl) {
       setBackendUrl(savedUrl);
     } else {
-      setBackendUrl("http://localhost:8000"); // Default URL
+      setBackendUrl("http://localhost:8000");
     }
   }, []);
 
@@ -127,7 +127,7 @@ export function SimpleMedicalInput({
     }
   }, [message, responding, uploadedFiles, onSend]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -355,112 +355,69 @@ export function SimpleMedicalInput({
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-full", className)}>
+      {/* File Uploads Display */}
+      {uploadedFiles.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {uploadedFiles.map((file, index) => (
+            <div key={index} className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-sm">
+              <FileText className="w-3 h-3 mr-1" />
+              <span className="max-w-32 truncate">{file.name}</span>
+              <Button variant="ghost" size="sm" className="h-4 w-4 p-0 ml-1 hover:bg-blue-200" onClick={() => removeFile(index)} title={`删除文件 ${file.name}`}>
+                <X className="w-2 h-2" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Main Textarea and Action Buttons */}
       <div className="relative flex items-center">
         <Textarea
           ref={textareaRef}
-          placeholder={
-            responding
-              ? "AI正在分析中..."
-              : "请描述您的研究需求或数据分析要求..."
-          }
-          className="w-full p-4 pr-32 border border-blue-200 rounded-lg resize-none h-16 focus:outline-none focus:ring-2 focus:ring-blue-500 text-2xl leading-relaxed scrollbar-hide text-gray-800 bg-white placeholder-gray-500"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            fontSize: "24px",
-            lineHeight: "1.5",
-            color: "#1f2937",
-            backgroundColor: "#ffffff",
-          }}
-          rows={1}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyDown}
+          placeholder="请描述您的研究需求或数据分析要求..."
+          className="w-full resize-none rounded-lg border bg-white p-3 pr-24 text-base text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          rows={1}
           disabled={responding}
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              isRecording
-                ? "text-red-600 hover:text-red-700 animate-pulse"
-                : voiceError
-                ? "text-orange-600 hover:text-orange-700"
-                : "text-blue-600 hover:text-blue-700",
-            )}
-            title={voiceError ?? voiceStatus}
-            onClick={() => void handleVoiceClick()}
-            disabled={responding}
-          >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+          <Button variant="ghost" size="icon" className={cn("h-8 w-8", isRecording ? "text-red-500" : "text-gray-500")} title={voiceStatus} onClick={handleVoiceClick} disabled={responding}>
             <Mic className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              isProcessingFile
-                ? "text-blue-600 animate-pulse"
-                : "text-gray-400 hover:text-gray-600",
-            )}
-            title={isProcessingFile ? "正在处理文件..." : "上传文件"}
-            onClick={() => fileInputRef.current?.click()}
-            disabled={responding || isProcessingFile}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500" title="上传文件" onClick={() => fileInputRef.current?.click()} disabled={responding}>
             <Upload className="h-4 w-4" />
           </Button>
         </div>
       </div>
-
-      {(voiceError ?? voiceStatus) !== "点击开始语音输入" && (
-        <div className="absolute right-2 top-20 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow-sm border">
-          {voiceError ? (
-            <span className="text-orange-600">
-              {voiceError} {useBrowserASR && "(已切换到浏览器语音识别)"}
-            </span>
-          ) : (
-            <span>{voiceStatus}</span>
+      
+      {/* Bottom row with Settings and Send button */}
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <div className="relative">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSettings(!showSettings)} title="配置后端地址">
+            <Settings className="h-5 w-5 text-gray-500" />
+          </Button>
+          {showSettings && (
+            <div className="absolute bottom-full right-0 mb-2 w-80 rounded-md border bg-background p-4 shadow-lg z-10">
+              <h4 className="font-medium text-base">配置后端服务地址</h4>
+              <p className="mt-1 text-sm text-muted-foreground">请输入您暴露的本地后端 URL。</p>
+              <div className="mt-4 flex items-center gap-2">
+                <Server className="h-4 w-4 text-muted-foreground" />
+                <Input type="url" placeholder="https://...ngrok-free.app" value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} className="h-9 text-sm"/>
+              </div>
+              <Button className="mt-4 w-full h-9 text-sm" onClick={handleSave}>保存</Button>
+            </div>
           )}
         </div>
-      )}
-
-      {/* --- Settings Button below the input box --- */}
-      <div className="absolute right-0 mt-2">
-        <div className="relative flex justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowSettings(!showSettings)}
-              title="配置后端地址"
-            >
-              <Settings className="h-5 w-5 text-gray-500" />
-            </Button>
-            {showSettings && (
-              <div className="absolute bottom-full right-0 mb-2 w-80 rounded-md border bg-background p-4 shadow-lg z-10">
-                <h4 className="font-medium">配置后端服务地址</h4>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  请输入您暴露的本地后端 URL (例如 ngrok)。
-                </p>
-                <div className="mt-4 flex items-center gap-2">
-                  <Server className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="url"
-                    placeholder="https://...ngrok-free.app"
-                    value={backendUrl}
-                    onChange={(e) => setBackendUrl(e.target.value)}
-                  />
-                </div>
-                <Button className="mt-4 w-full" onClick={handleSave}>
-                  保存
-                </Button>
-              </div>
-            )}
-        </div>
+        <Button onClick={handleSendMessage} disabled={responding || !message.trim()} className="h-9">
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
+
+      {/* Hidden file input */}
+      <form><input ref={fileInputRef} type="file" multiple onChange={handleFileUpload} className="hidden" /></form>
     </div>
   );
 }

@@ -8,8 +8,12 @@ export function resolveServiceURL(path: string): string {
   if (typeof window !== "undefined") {
     const customBackendUrl = localStorage.getItem("backendUrl");
     if (customBackendUrl) {
-      // 确保 URL 后面有斜杠，路径前面没有
-      const baseUrl = customBackendUrl.endsWith('/') ? customBackendUrl.slice(0, -1) : customBackendUrl;
+      // 确保基础 URL 后面有 /api，并且没有多余的斜杠
+      let baseUrl = customBackendUrl.endsWith('/') ? customBackendUrl.slice(0, -1) : customBackendUrl;
+      if (!baseUrl.endsWith('/api')) {
+        baseUrl += '/api';
+      }
+      
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
       return `${baseUrl}/${cleanPath}`;
     }
@@ -17,6 +21,7 @@ export function resolveServiceURL(path: string): string {
 
   // 否则，使用环境变量或默认值
   let BASE_URL = env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/";
+
   if (!BASE_URL.endsWith("/")) {
     BASE_URL += "/";
   }
