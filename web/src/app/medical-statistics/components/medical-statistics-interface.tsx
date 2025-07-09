@@ -61,12 +61,7 @@ export function MedicalStatisticsInterface() {
         )}
 
         {/* 聊天界面 */}
-        <MedicalChatInterface 
-          leftPanelVisible={leftPanelVisible}
-          rightPanelVisible={rightPanelVisible}
-          onToggleLeftPanel={() => setLeftPanelVisible(!leftPanelVisible)}
-          onToggleRightPanel={() => setRightPanelVisible(!rightPanelVisible)}
-        />
+        <MedicalChatInterface />
 
         {/* 右侧面板 - 数据库智能体 */}
         {rightPanelVisible && (
