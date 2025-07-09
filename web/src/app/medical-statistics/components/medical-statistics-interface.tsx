@@ -5,25 +5,24 @@
 
 import Image from "next/image";
 import React, { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "~/components/ui/button";
 
 import { MedicalChatInterface } from "~/app/medical-statistics/components/medical-chat-interface";
 import { DatabasePanel } from "./database-panel";
 import { DesignAnalysisPanel } from "./design-analysis-panel";
-import { Header } from "./header";
 
 /**
  * 医学统计分析界面组件
  * @description 主界面组件，包含三栏布局：设计分析智能体、聊天界面、数据库智能体
  * 集成现有的聊天接口和状态管理系统
  */
-
 export function MedicalStatisticsInterface() {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* 使用与主页面相同的头部设计 */}
       <header className="sticky top-0 left-0 z-40 w-full bg-indigo-800 px-6 py-4 text-white shadow-md">
         <div className="flex w-full items-center">
           <div className="mr-4 flex-shrink-0">
@@ -55,18 +54,36 @@ export function MedicalStatisticsInterface() {
       
       {/* 主要内容区域 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左侧面板 - 设计分析智能体 */}
-        {leftPanelVisible && (
-          <DesignAnalysisPanel />
-        )}
+        {/* 左侧面板 */}
+        {leftPanelVisible && <DesignAnalysisPanel />}
 
-        {/* 聊天界面 */}
-        <MedicalChatInterface />
+        {/* 中央区域，包含聊天和切换按钮 */}
+        <div className="flex-1 flex flex-col relative">
+          {/* 左侧面板切换按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1/2 -translate-y-1/2 left-0 z-10 h-12 w-6 rounded-l-none bg-gray-200/50 hover:bg-gray-200"
+            onClick={() => setLeftPanelVisible(!leftPanelVisible)}
+          >
+            {leftPanelVisible ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </Button>
 
-        {/* 右侧面板 - 数据库智能体 */}
-        {rightPanelVisible && (
-          <DatabasePanel />
-        )}
+          <MedicalChatInterface />
+
+          {/* 右侧面板切换按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1/2 -translate-y-1/2 right-0 z-10 h-12 w-6 rounded-r-none bg-gray-200/50 hover:bg-gray-200"
+            onClick={() => setRightPanelVisible(!rightPanelVisible)}
+          >
+            {rightPanelVisible ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        {/* 右侧面板 */}
+        {rightPanelVisible && <DatabasePanel />}
       </div>
     </div>
   );

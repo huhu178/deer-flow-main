@@ -1,12 +1,13 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { FileText, Mic, Send, Upload, X } from "lucide-react";
+import { FileText, Mic, Send, Upload, X, Settings, Server } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { cn } from "~/lib/utils";
+import { Input } from "~/components/ui/input";
 
 // 语音识别类型声明
 declare global {
@@ -90,6 +91,26 @@ export function SimpleMedicalInput({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  // --- Backend URL Configuration Logic ---
+  const [backendUrl, setBackendUrl] = React.useState("");
+  const [showSettings, setShowSettings] = React.useState(false);
+
+  React.useEffect(() => {
+    const savedUrl = localStorage.getItem("backendUrl");
+    if (savedUrl) {
+      setBackendUrl(savedUrl);
+    } else {
+      setBackendUrl("http://localhost:8000"); // Default URL
+    }
+  }, []);
+
+  const handleSave = () => {
+    localStorage.setItem("backendUrl", backendUrl);
+    alert(`后端地址已保存: ${backendUrl}`);
+    setShowSettings(false);
+  };
+  // --- End of Logic ---
 
   const handleSendMessage = useCallback(() => {
     if (message.trim() && !responding) {
@@ -334,43 +355,8 @@ export function SimpleMedicalInput({
   };
 
   return (
-    <div className={cn("flex items-center space-x-2", className)}>
-      <form>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".txt,.pdf,.doc,.docx,.csv,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
-          onChange={handleFileUpload}
-          className="hidden"
-          aria-label="上传文件"
-        />
-      </form>
-
-      <div className="flex-1 relative">
-        {uploadedFiles.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
-            {uploadedFiles.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-sm"
-              >
-                <FileText className="w-3 h-3 mr-1" />
-                <span className="max-w-32 truncate">{file.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-4 w-4 p-0 ml-1 hover:bg-blue-200"
-                  onClick={() => removeFile(index)}
-                  title={`删除文件 ${file.name}`}
-                >
-                  <X className="w-2 h-2" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-
+    <div className={cn("relative", className)}>
+      <div className="relative flex items-center">
         <Textarea
           ref={textareaRef}
           placeholder={
@@ -393,7 +379,7 @@ export function SimpleMedicalInput({
           onKeyPress={handleKeyPress}
           disabled={responding}
         />
-        <div className="absolute right-2 top-4 flex space-x-1">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
           <Button
             variant="ghost"
             size="icon"
@@ -427,30 +413,54 @@ export function SimpleMedicalInput({
             <Upload className="h-4 w-4" />
           </Button>
         </div>
-
-        {(voiceError ?? voiceStatus) !== "点击开始语音输入" && (
-          <div className="absolute right-2 top-20 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow-sm border">
-            {voiceError ? (
-              <span className="text-orange-600">
-                {voiceError} {useBrowserASR && "(已切换到浏览器语音识别)"}
-              </span>
-            ) : (
-              <span>{voiceStatus}</span>
-            )}
-          </div>
-        )}
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 text-gray-400 hover:text-gray-600"
-        title="发送消息"
-        onClick={handleSendMessage}
-        disabled={responding || !message.trim()}
-      >
-        <Send className="h-4 w-4" />
-      </Button>
+      {(voiceError ?? voiceStatus) !== "点击开始语音输入" && (
+        <div className="absolute right-2 top-20 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow-sm border">
+          {voiceError ? (
+            <span className="text-orange-600">
+              {voiceError} {useBrowserASR && "(已切换到浏览器语音识别)"}
+            </span>
+          ) : (
+            <span>{voiceStatus}</span>
+          )}
+        </div>
+      )}
+
+      {/* --- Settings Button below the input box --- */}
+      <div className="absolute right-0 mt-2">
+        <div className="relative flex justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowSettings(!showSettings)}
+              title="配置后端地址"
+            >
+              <Settings className="h-5 w-5 text-gray-500" />
+            </Button>
+            {showSettings && (
+              <div className="absolute bottom-full right-0 mb-2 w-80 rounded-md border bg-background p-4 shadow-lg z-10">
+                <h4 className="font-medium">配置后端服务地址</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  请输入您暴露的本地后端 URL (例如 ngrok)。
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                  <Server className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="url"
+                    placeholder="https://...ngrok-free.app"
+                    value={backendUrl}
+                    onChange={(e) => setBackendUrl(e.target.value)}
+                  />
+                </div>
+                <Button className="mt-4 w-full" onClick={handleSave}>
+                  保存
+                </Button>
+              </div>
+            )}
+        </div>
+      </div>
     </div>
   );
 }

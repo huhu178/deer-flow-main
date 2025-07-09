@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 // SPDX-License-Identifier: MIT
 
-import { Database, FileUp, Filter, Search, Upload } from "lucide-react";
+import { Database, FileUp, Filter, Search, Upload, Settings, Server } from "lucide-react";
 import React from "react";
 
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { sendMessage } from "~/core/store";
+import { Input } from "~/components/ui/input";
 
 interface DataTypeCardProps {
   title: string;
